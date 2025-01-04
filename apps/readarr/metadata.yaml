@@ -1,6 +1,6 @@
 ---
 app: readarr
-base: false
+semver: false
 channels:
   - name: develop
     platforms:
