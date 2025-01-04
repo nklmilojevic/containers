@@ -112,6 +112,9 @@ Container | Channel | Image
 [esphome](https://github.com/nklmilojevic/containers/pkgs/container/esphome) | stable | ghcr.io/nklmilojevic/esphome
 [home-assistant](https://github.com/nklmilojevic/containers/pkgs/container/home-assistant) | stable | ghcr.io/nklmilojevic/home-assistant
 [jbops](https://github.com/nklmilojevic/containers/pkgs/container/jbops) | stable | ghcr.io/nklmilojevic/jbops
+[lidarr](https://github.com/nklmilojevic/containers/pkgs/container/lidarr) | master | ghcr.io/nklmilojevic/lidarr
+[lidarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/lidarr-develop) | develop | ghcr.io/nklmilojevic/lidarr-develop
+[lidarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/lidarr-nightly) | nightly | ghcr.io/nklmilojevic/lidarr-nightly
 [plex](https://github.com/nklmilojevic/containers/pkgs/container/plex) | stable | ghcr.io/nklmilojevic/plex
 [plex-beta](https://github.com/nklmilojevic/containers/pkgs/container/plex-beta) | beta | ghcr.io/nklmilojevic/plex-beta
 [postgres-init](https://github.com/nklmilojevic/containers/pkgs/container/postgres-init) | stable | ghcr.io/nklmilojevic/postgres-init
@@ -123,6 +126,8 @@ Container | Channel | Image
 [radarr](https://github.com/nklmilojevic/containers/pkgs/container/radarr) | master | ghcr.io/nklmilojevic/radarr
 [radarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/radarr-develop) | develop | ghcr.io/nklmilojevic/radarr-develop
 [radarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/radarr-nightly) | nightly | ghcr.io/nklmilojevic/radarr-nightly
+[readarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/readarr-develop) | develop | ghcr.io/nklmilojevic/readarr-develop
+[readarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/readarr-nightly) | nightly | ghcr.io/nklmilojevic/readarr-nightly
 [sabnzbd](https://github.com/nklmilojevic/containers/pkgs/container/sabnzbd) | stable | ghcr.io/nklmilojevic/sabnzbd
 [sonarr](https://github.com/nklmilojevic/containers/pkgs/container/sonarr) | main | ghcr.io/nklmilojevic/sonarr
 [sonarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/sonarr-develop) | develop | ghcr.io/nklmilojevic/sonarr-develop
