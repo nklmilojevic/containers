@@ -35,10 +35,10 @@ We do take a similar approach but instead of appending a `-ls69` or `-r420` pref
 
 | Container                                          | Immutable |
 |----------------------------------------------------|-----------|
-| `ghcr.io/nklmilojevic/sonarr:rolling`                   | ❌         |
-| `ghcr.io/nklmilojevic/sonarr:3.0.8.1507`                | ❌         |
-| `ghcr.io/nklmilojevic/sonarr:rolling@sha256:8053...`    | ✅         |
-| `ghcr.io/nklmilojevic/sonarr:3.0.8.1507@sha256:8053...` | ✅         |
+| `docker.io/nklmilojevic/sonarr:rolling`                   | ❌         |
+| `docker.io/nklmilojevic/sonarr:3.0.8.1507`                | ❌         |
+| `docker.io/nklmilojevic/sonarr:rolling@sha256:8053...`    | ✅         |
+| `docker.io/nklmilojevic/sonarr:3.0.8.1507@sha256:8053...` | ✅         |
 
 _If pinning an image to the sha256 digest, tools like [Renovate](https://github.com/renovatebot/renovate) support updating the container on a digest or application version change._
 
@@ -55,7 +55,7 @@ networks:
     external: true
 services:
   sonarr:
-    image: ghcr.io/nklmilojevic/sonarr:3.0.8.1507
+    image: docker.io/nklmilojevic/sonarr:3.0.8.1507
     container_name: sonarr
     user: 65534:65534
     # ...
@@ -107,32 +107,32 @@ Each Image will be built with a `rolling` tag, along with tags specific to it's 
 
 Container | Channel | Image
 --- | --- | ---
-[actions-runner](https://github.com/nklmilojevic/containers/pkgs/container/actions-runner) | stable | ghcr.io/nklmilojevic/actions-runner
-[bazarr](https://github.com/nklmilojevic/containers/pkgs/container/bazarr) | stable | ghcr.io/nklmilojevic/bazarr
-[esphome](https://github.com/nklmilojevic/containers/pkgs/container/esphome) | stable | ghcr.io/nklmilojevic/esphome
-[home-assistant](https://github.com/nklmilojevic/containers/pkgs/container/home-assistant) | stable | ghcr.io/nklmilojevic/home-assistant
-[jbops](https://github.com/nklmilojevic/containers/pkgs/container/jbops) | stable | ghcr.io/nklmilojevic/jbops
-[lidarr](https://github.com/nklmilojevic/containers/pkgs/container/lidarr) | master | ghcr.io/nklmilojevic/lidarr
-[lidarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/lidarr-develop) | develop | ghcr.io/nklmilojevic/lidarr-develop
-[lidarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/lidarr-nightly) | nightly | ghcr.io/nklmilojevic/lidarr-nightly
-[plex](https://github.com/nklmilojevic/containers/pkgs/container/plex) | stable | ghcr.io/nklmilojevic/plex
-[plex-beta](https://github.com/nklmilojevic/containers/pkgs/container/plex-beta) | beta | ghcr.io/nklmilojevic/plex-beta
-[postgres-init](https://github.com/nklmilojevic/containers/pkgs/container/postgres-init) | stable | ghcr.io/nklmilojevic/postgres-init
-[prowlarr](https://github.com/nklmilojevic/containers/pkgs/container/prowlarr) | master | ghcr.io/nklmilojevic/prowlarr
-[prowlarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/prowlarr-develop) | develop | ghcr.io/nklmilojevic/prowlarr-develop
-[prowlarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/prowlarr-nightly) | nightly | ghcr.io/nklmilojevic/prowlarr-nightly
-[qbittorrent](https://github.com/nklmilojevic/containers/pkgs/container/qbittorrent) | stable | ghcr.io/nklmilojevic/qbittorrent
-[qbittorrent-beta](https://github.com/nklmilojevic/containers/pkgs/container/qbittorrent-beta) | beta | ghcr.io/nklmilojevic/qbittorrent-beta
-[radarr](https://github.com/nklmilojevic/containers/pkgs/container/radarr) | master | ghcr.io/nklmilojevic/radarr
-[radarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/radarr-develop) | develop | ghcr.io/nklmilojevic/radarr-develop
-[radarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/radarr-nightly) | nightly | ghcr.io/nklmilojevic/radarr-nightly
-[readarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/readarr-develop) | develop | ghcr.io/nklmilojevic/readarr-develop
-[readarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/readarr-nightly) | nightly | ghcr.io/nklmilojevic/readarr-nightly
-[sabnzbd](https://github.com/nklmilojevic/containers/pkgs/container/sabnzbd) | stable | ghcr.io/nklmilojevic/sabnzbd
-[sonarr](https://github.com/nklmilojevic/containers/pkgs/container/sonarr) | main | ghcr.io/nklmilojevic/sonarr
-[sonarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/sonarr-develop) | develop | ghcr.io/nklmilojevic/sonarr-develop
-[tautulli](https://github.com/nklmilojevic/containers/pkgs/container/tautulli) | master | ghcr.io/nklmilojevic/tautulli
-[volsync](https://github.com/nklmilojevic/containers/pkgs/container/volsync) | stable | ghcr.io/nklmilojevic/volsync
+[actions-runner](https://github.com/nklmilojevic/containers/pkgs/container/actions-runner) | stable | docker.io/nklmilojevic/actions-runner
+[bazarr](https://github.com/nklmilojevic/containers/pkgs/container/bazarr) | stable | docker.io/nklmilojevic/bazarr
+[esphome](https://github.com/nklmilojevic/containers/pkgs/container/esphome) | stable | docker.io/nklmilojevic/esphome
+[home-assistant](https://github.com/nklmilojevic/containers/pkgs/container/home-assistant) | stable | docker.io/nklmilojevic/home-assistant
+[jbops](https://github.com/nklmilojevic/containers/pkgs/container/jbops) | stable | docker.io/nklmilojevic/jbops
+[lidarr](https://github.com/nklmilojevic/containers/pkgs/container/lidarr) | master | docker.io/nklmilojevic/lidarr
+[lidarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/lidarr-develop) | develop | docker.io/nklmilojevic/lidarr-develop
+[lidarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/lidarr-nightly) | nightly | docker.io/nklmilojevic/lidarr-nightly
+[plex](https://github.com/nklmilojevic/containers/pkgs/container/plex) | stable | docker.io/nklmilojevic/plex
+[plex-beta](https://github.com/nklmilojevic/containers/pkgs/container/plex-beta) | beta | docker.io/nklmilojevic/plex-beta
+[postgres-init](https://github.com/nklmilojevic/containers/pkgs/container/postgres-init) | stable | docker.io/nklmilojevic/postgres-init
+[prowlarr](https://github.com/nklmilojevic/containers/pkgs/container/prowlarr) | master | docker.io/nklmilojevic/prowlarr
+[prowlarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/prowlarr-develop) | develop | docker.io/nklmilojevic/prowlarr-develop
+[prowlarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/prowlarr-nightly) | nightly | docker.io/nklmilojevic/prowlarr-nightly
+[qbittorrent](https://github.com/nklmilojevic/containers/pkgs/container/qbittorrent) | stable | docker.io/nklmilojevic/qbittorrent
+[qbittorrent-beta](https://github.com/nklmilojevic/containers/pkgs/container/qbittorrent-beta) | beta | docker.io/nklmilojevic/qbittorrent-beta
+[radarr](https://github.com/nklmilojevic/containers/pkgs/container/radarr) | master | docker.io/nklmilojevic/radarr
+[radarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/radarr-develop) | develop | docker.io/nklmilojevic/radarr-develop
+[radarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/radarr-nightly) | nightly | docker.io/nklmilojevic/radarr-nightly
+[readarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/readarr-develop) | develop | docker.io/nklmilojevic/readarr-develop
+[readarr-nightly](https://github.com/nklmilojevic/containers/pkgs/container/readarr-nightly) | nightly | docker.io/nklmilojevic/readarr-nightly
+[sabnzbd](https://github.com/nklmilojevic/containers/pkgs/container/sabnzbd) | stable | docker.io/nklmilojevic/sabnzbd
+[sonarr](https://github.com/nklmilojevic/containers/pkgs/container/sonarr) | main | docker.io/nklmilojevic/sonarr
+[sonarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/sonarr-develop) | develop | docker.io/nklmilojevic/sonarr-develop
+[tautulli](https://github.com/nklmilojevic/containers/pkgs/container/tautulli) | master | docker.io/nklmilojevic/tautulli
+[volsync](https://github.com/nklmilojevic/containers/pkgs/container/volsync) | stable | docker.io/nklmilojevic/volsync
 
 
 ## Deprecations
