@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import os
-import yaml
 import logging
+import os
+
+import yaml
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +41,7 @@ def process_metadata(apps_dir):
             image = {
                 "name": name,
                 "channel": channel["name"],
-                "html_url": f"https://github.com/{repo_owner}/containers/pkgs/container/{name}",
+                "html_url": f"https://hub.docker.com/r/{repo_owner}/{name}",
                 "owner": repo_owner
             }
             app_images.append(image)
