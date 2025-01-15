@@ -1,5 +1,3 @@
----
-# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: "Image Build"
 
 on:
@@ -27,12 +25,15 @@ on:
         type: boolean
         description: Force rebuild
     secrets:
-      BOT_APP_ID:
-        description: The App ID of the GitHub App
+      DOCKERHUB_USERNAME:
         required: true
-      BOT_APP_PRIVATE_KEY:
-        description: The private key of the GitHub App
+        description: Docker Hub username
+      DOCKERHUB_TOKEN:
         required: true
+        description: Docker Hub access token
+      DISCORD_WEBHOOK:
+        required: false
+        description: Discord webhook URL for notifications
 
 jobs:
   prepare:
@@ -41,21 +42,12 @@ jobs:
     outputs:
       matrices: ${{ steps.prepare-matrices.outputs.matrices }}
     steps:
-      - name: Lowercase repository owner
+      - name: Set Docker Hub Owner
         shell: bash
-        run: echo "LOWERCASE_REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
-
-      - name: Generate Token
-        uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: "${{ secrets.BOT_APP_ID }}"
-          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
+        run: echo "REPO_OWNER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: "${{ steps.app-token.outputs.token }}"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -70,7 +62,8 @@ jobs:
       - name: Prepare Matrices
         id: prepare-matrices
         env:
-          TOKEN: ${{ steps.app-token.outputs.token }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         shell: bash
         run: |
           if [[ -z "${{ inputs.appsToBuild }}" ]]; then
@@ -93,15 +86,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image:
-          ["${{ fromJSON(needs.prepare.outputs.matrices).imagePlatforms }}"]
-    permissions:
-      contents: read
-      packages: write
+        image: ["${{ fromJSON(needs.prepare.outputs.matrices).imagePlatforms }}"]
     steps:
-      - name: Lowercase repository owner
+      - name: Set Docker Hub Owner
         shell: bash
-        run: echo "LOWERCASE_REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+        run: echo "REPO_OWNER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
 
       - name: Log Matrix Input
         shell: bash
@@ -140,26 +129,17 @@ jobs:
           echo "${{ matrix.image.name }}" | grep -E "[a-zA-Z0-9_\.\-]+" || "Image Name is invalid"
           echo "${{ matrix.image.version }}" | grep -E "[a-zA-Z0-9_\.\-]+" || "Image Version is invalid"
 
-      - name: Generate Token
-        uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: "${{ secrets.BOT_APP_ID }}"
-          private-key: "${{ secrets.BOT_APP_PRIVATE_KEY }}"
-
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: "${{ steps.app-token.outputs.token }}"
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Container Registry
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Setup Goss
         if: ${{ matrix.image.tests_enabled }}
@@ -172,10 +152,10 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ inputs.pushImages }}" == "true" ]]; then
-              image_name="${{ env.LOWERCASE_REPO_OWNER }}/${{ matrix.image.name }}"
+              image_name="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}"
               outputs="type=image,name=${image_name},push-by-digest=true,name-canonical=true,push=true"
           else
-              image_name="${{ env.LOWERCASE_REPO_OWNER }}/${{ matrix.image.name }}:zztesting"
+              image_name="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}:zztesting"
               outputs="type=docker,name=${image_name},push=false"
           fi
           echo "image_name=${image_name}" >> $GITHUB_OUTPUT
@@ -189,7 +169,6 @@ jobs:
             VERSION=${{ matrix.image.version }}
             REVISION=${{ github.sha }}
             CHANNEL=${{ matrix.image.channel }}
-          # TODO: Use ${{ matrix.image.context }}, requires updates to all dockerfiles :-(
           context: .
           platforms: ${{ matrix.image.platform }}
           file: ${{ matrix.image.dockerfile }}
@@ -198,10 +177,10 @@ jobs:
           cache-to: type=gha,mode=max
           labels: |-
             org.opencontainers.image.title=${{ matrix.image.name }}
-            org.opencontainers.image.url=https://ghcr.io/${{ env.LOWERCASE_REPO_OWNER }}/${{ matrix.image.name }}
+            org.opencontainers.image.url=https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}
             org.opencontainers.image.version=${{ matrix.image.version }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.vendor=${{ env.LOWERCASE_REPO_OWNER }}
+            org.opencontainers.image.vendor=${{ secrets.DOCKERHUB_USERNAME }}
 
       - name: Run Goss Tests
         id: dgoss
@@ -244,17 +223,15 @@ jobs:
     name: Merge ${{ matrix.image.name }}
     runs-on: ubuntu-latest
     needs: ["prepare", "build-platform-images"]
-    # Always run merge, as the prior matrix is all or nothing. We test for prior step failure
-    # in the "Test Failed Bit" step. This ensures if one app fails, others can still complete.
     if: ${{ always() && inputs.pushImages && toJSON(fromJSON(needs.prepare.outputs.matrices).images) != '[]' && toJSON(fromJSON(needs.prepare.outputs.matrices).images) != '' }}
     strategy:
       matrix:
         image: ["${{ fromJSON(needs.prepare.outputs.matrices).images }}"]
       fail-fast: false
     steps:
-      - name: Lowercase repository owner
+      - name: Set Docker Hub Owner
         shell: bash
-        run: echo "LOWERCASE_REPO_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+        run: echo "REPO_OWNER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
 
       - name: Download Digests
         uses: actions/download-artifact@v4
@@ -282,11 +259,11 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Container Registry
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log Files
         working-directory: /tmp/${{ matrix.image.name }}/digests
@@ -302,14 +279,14 @@ jobs:
           TAGS: ${{ toJSON(matrix.image.tags) }}
         shell: bash
         run: |
-          docker buildx imagetools create $(jq -cr '. | map("-t ${{ env.LOWERCASE_REPO_OWNER }}/${{matrix.image.name}}:" + .) | join(" ")'  <<< "$TAGS") \
-              $(printf '${{ env.LOWERCASE_REPO_OWNER }}/${{ matrix.image.name }}@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '. | map("-t ${{ secrets.DOCKERHUB_USERNAME }}/${{matrix.image.name}}:" + .) | join(" ")'  <<< "$TAGS") \
+              $(printf '${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}@sha256:%s ' *)
 
       - name: Inspect image
         id: inspect
         shell: bash
         run: |
-          docker buildx imagetools inspect ${{ env.LOWERCASE_REPO_OWNER }}/${{ matrix.image.name }}:${{ matrix.image.tags[0] }}
+          docker buildx imagetools inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}:${{ matrix.image.tags[0] }}
 
       - name: Build successful
         id: build-success
@@ -336,7 +313,6 @@ jobs:
           color: ${{ steps.build-failed.outputs.color || steps.build-success.outputs.color }}
           username: GitHub Actions
 
-  # Summarize matrix https://github.community/t/status-check-for-a-matrix-jobs/127354/7
   build_success:
     name: Build matrix success
     runs-on: ubuntu-latest

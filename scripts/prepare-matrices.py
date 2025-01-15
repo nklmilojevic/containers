@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 import importlib.util
-import sys
-import os
-
 import json
-import yaml
-import requests
-
+import os
+import sys
+from os.path import isfile
 from subprocess import check_output
 
-from os.path import isfile
+import requests
+import yaml
 
-repo_owner = os.environ.get('REPO_OWNER', os.environ.get('GITHUB_REPOSITORY_OWNER'))
+repo_owner = os.environ.get('REPO_OWNER')
 
 TESTABLE_PLATFORMS = ["linux/amd64"]
 
@@ -35,36 +33,42 @@ def get_latest_version_sh(latest_sh_path, channel_name):
     return out.decode("utf-8").strip()
 
 def get_latest_version(subdir, channel_name):
-    ci_dir =  os.path.join(subdir, "ci")
+    ci_dir = os.path.join(subdir, "ci")
     if os.path.isfile(os.path.join(ci_dir, "latest.py")):
         return get_latest_version_py(os.path.join(ci_dir, "latest.py"), channel_name)
     elif os.path.isfile(os.path.join(ci_dir, "latest.sh")):
         return get_latest_version_sh(os.path.join(ci_dir, "latest.sh"), channel_name)
     elif os.path.isfile(os.path.join(subdir, channel_name, "latest.py")):
-       return get_latest_version_py(os.path.join(subdir, channel_name, "latest.py"), channel_name)
+        return get_latest_version_py(os.path.join(subdir, channel_name, "latest.py"), channel_name)
     elif os.path.isfile(os.path.join(subdir, channel_name, "latest.sh")):
         return get_latest_version_sh(os.path.join(subdir, channel_name, "latest.sh"), channel_name)
     return None
 
 def get_published_version(image_name):
-    r = requests.get(
-        f"https://api.github.com/users/{repo_owner}/packages/container/{image_name}/versions",
-        headers={
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": "token " + os.environ["TOKEN"]
-        },
-    )
+    try:
+        r = requests.get(
+            f"https://hub.docker.com/v2/repositories/{repo_owner}/{image_name}/tags",
+            params={"page_size": 100},
+            headers={
+                "Accept": "application/json",
+            },
+            auth=(os.environ.get("DOCKERHUB_USERNAME"), os.environ.get("DOCKERHUB_TOKEN"))
+        )
 
-    if r.status_code != 200:
-        return None
+        if r.status_code != 200:
+            return None
 
-    data = json.loads(r.text)
-    for image in data:
-        tags = image["metadata"]["container"]["tags"]
+        data = r.json()
+        tags = [tag['name'] for tag in data.get('results', [])]
+
         if "rolling" in tags:
             tags.remove("rolling")
             # Assume the longest string is the complete version number
-            return max(tags, key=len)
+            return max(tags, key=len) if tags else None
+
+        return None
+    except requests.exceptions.RequestException:
+        return None
 
 def get_image_metadata(subdir, meta, forRelease=False, force=False, channels=None):
     imagesToBuild = {
@@ -76,7 +80,6 @@ def get_image_metadata(subdir, meta, forRelease=False, force=False, channels=Non
         channels = meta["channels"]
     else:
         channels = [channel for channel in meta["channels"] if channel["name"] in channels]
-
 
     for channel in channels:
         version = get_latest_version(subdir, channel["name"])
@@ -109,7 +112,6 @@ def get_image_metadata(subdir, meta, forRelease=False, force=False, channels=Non
 
         # Platform Metadata
         for platform in channel["platforms"]:
-
             if platform not in TESTABLE_PLATFORMS and not forRelease:
                 continue
 
@@ -125,7 +127,7 @@ def get_image_metadata(subdir, meta, forRelease=False, force=False, channels=Non
             platformToBuild["target_arch"] = target_arch
             platformToBuild["version"] = version
             platformToBuild["channel"] = channel["name"]
-            platformToBuild["label_type"]="org.opencontainers.image"
+            platformToBuild["label_type"] = "org.opencontainers.image"
 
             if isfile(os.path.join(subdir, channel["name"], "Dockerfile")):
                 platformToBuild["dockerfile"] = os.path.join(subdir, channel["name"], "Dockerfile")
@@ -154,7 +156,7 @@ if __name__ == "__main__":
     }
 
     if apps != "all":
-        channels=None
+        channels = None
         apps = apps.split(",")
         if len(sys.argv) == 5:
             channels = sys.argv[4].split(",")
