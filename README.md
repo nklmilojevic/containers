@@ -109,7 +109,6 @@ Container | Channel | Image
 --- | --- | ---
 [actions-runner](https://github.com/nklmilojevic/containers/pkgs/container/actions-runner) | stable | ghcr.io/nklmilojevic/actions-runner
 [bazarr](https://github.com/nklmilojevic/containers/pkgs/container/bazarr) | stable | ghcr.io/nklmilojevic/bazarr
-[esphome](https://github.com/nklmilojevic/containers/pkgs/container/esphome) | stable | ghcr.io/nklmilojevic/esphome
 [home-assistant](https://github.com/nklmilojevic/containers/pkgs/container/home-assistant) | stable | ghcr.io/nklmilojevic/home-assistant
 [jbops](https://github.com/nklmilojevic/containers/pkgs/container/jbops) | stable | ghcr.io/nklmilojevic/jbops
 [lidarr](https://github.com/nklmilojevic/containers/pkgs/container/lidarr) | master | ghcr.io/nklmilojevic/lidarr
@@ -132,7 +131,6 @@ Container | Channel | Image
 [sonarr](https://github.com/nklmilojevic/containers/pkgs/container/sonarr) | main | ghcr.io/nklmilojevic/sonarr
 [sonarr-develop](https://github.com/nklmilojevic/containers/pkgs/container/sonarr-develop) | develop | ghcr.io/nklmilojevic/sonarr-develop
 [tautulli](https://github.com/nklmilojevic/containers/pkgs/container/tautulli) | master | ghcr.io/nklmilojevic/tautulli
-[volsync](https://github.com/nklmilojevic/containers/pkgs/container/volsync) | stable | ghcr.io/nklmilojevic/volsync
 
 
 ## Deprecations
