@@ -56,18 +56,12 @@ def get_published_version(image_name):
             return None
 
         data = r.json()
-        tags = []
-
-        # Extract tags from Quay.io's response format
-        for tag in data.get('tags', []):
-            tag_name = tag.get('name')
-            if tag_name and tag_name != "rolling":
-                tags.append(tag_name)
+        tags = [tag['name'] for tag in data.get('tags', [])]
 
         if "rolling" in tags:
             tags.remove("rolling")
             # Assume the longest string is the complete version number
-            return max(tags, key=len)
+            return max(tags, key=len) if tags else None
 
         return None
     except requests.exceptions.RequestException:
