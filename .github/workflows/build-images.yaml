@@ -25,12 +25,12 @@ on:
         type: boolean
         description: Force rebuild
     secrets:
-      DOCKERHUB_USERNAME:
+      QUAY_USERNAME:
         required: true
-        description: Docker Hub username
-      DOCKERHUB_TOKEN:
+        description: Quay.io organization name
+      QUAY_ROBOT_TOKEN:
         required: true
-        description: Docker Hub access token
+        description: Quay.io robot account token for pushing images
       DISCORD_WEBHOOK:
         required: false
         description: Discord webhook URL for notifications
@@ -42,9 +42,9 @@ jobs:
     outputs:
       matrices: ${{ steps.prepare-matrices.outputs.matrices }}
     steps:
-      - name: Set Docker Hub Owner
+      - name: Set Quay.io Owner
         shell: bash
-        run: echo "REPO_OWNER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
+        run: echo "REPO_OWNER=${{ secrets.QUAY_USERNAME }}" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,8 +62,7 @@ jobs:
       - name: Prepare Matrices
         id: prepare-matrices
         env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          REPO_OWNER: ${{ secrets.QUAY_USERNAME }}
         shell: bash
         run: |
           if [[ -z "${{ inputs.appsToBuild }}" ]]; then
@@ -88,9 +87,9 @@ jobs:
       matrix:
         image: ["${{ fromJSON(needs.prepare.outputs.matrices).imagePlatforms }}"]
     steps:
-      - name: Set Docker Hub Owner
+      - name: Set Quay.io Owner
         shell: bash
-        run: echo "REPO_OWNER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
+        run: echo "REPO_OWNER=${{ secrets.QUAY_USERNAME }}" >> $GITHUB_ENV
 
       - name: Log Matrix Input
         shell: bash
@@ -135,11 +134,12 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to Quay.io
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
       - name: Setup Goss
         if: ${{ matrix.image.tests_enabled }}
@@ -152,10 +152,10 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ inputs.pushImages }}" == "true" ]]; then
-              image_name="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}"
+              image_name="quay.io/${{ secrets.QUAY_USERNAME }}/${{ matrix.image.name }}"
               outputs="type=image,name=${image_name},push-by-digest=true,name-canonical=true,push=true"
           else
-              image_name="${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}:zztesting"
+              image_name="quay.io/${{ secrets.QUAY_USERNAME }}/${{ matrix.image.name }}:zztesting"
               outputs="type=docker,name=${image_name},push=false"
           fi
           echo "image_name=${image_name}" >> $GITHUB_OUTPUT
@@ -177,10 +177,10 @@ jobs:
           cache-to: type=gha,mode=max
           labels: |-
             org.opencontainers.image.title=${{ matrix.image.name }}
-            org.opencontainers.image.url=https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}
+            org.opencontainers.image.url=https://quay.io/${{ secrets.QUAY_USERNAME }}/${{ matrix.image.name }}
             org.opencontainers.image.version=${{ matrix.image.version }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.vendor=${{ secrets.DOCKERHUB_USERNAME }}
+            org.opencontainers.image.vendor=${{ secrets.QUAY_USERNAME }}
 
       - name: Run Goss Tests
         id: dgoss
@@ -229,9 +229,9 @@ jobs:
         image: ["${{ fromJSON(needs.prepare.outputs.matrices).images }}"]
       fail-fast: false
     steps:
-      - name: Set Docker Hub Owner
+      - name: Set Quay.io Owner
         shell: bash
-        run: echo "REPO_OWNER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_ENV
+        run: echo "REPO_OWNER=${{ secrets.QUAY_USERNAME }}" >> $GITHUB_ENV
 
       - name: Download Digests
         uses: actions/download-artifact@v4
@@ -259,11 +259,12 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
+      - name: Login to Quay.io
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
 
       - name: Log Files
         working-directory: /tmp/${{ matrix.image.name }}/digests
@@ -279,14 +280,14 @@ jobs:
           TAGS: ${{ toJSON(matrix.image.tags) }}
         shell: bash
         run: |
-          docker buildx imagetools create $(jq -cr '. | map("-t ${{ secrets.DOCKERHUB_USERNAME }}/${{matrix.image.name}}:" + .) | join(" ")'  <<< "$TAGS") \
-              $(printf '${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}@sha256:%s ' *)
+          docker buildx imagetools create $(jq -cr '. | map("-t quay.io/${{ secrets.QUAY_USERNAME }}/${{matrix.image.name}}:" + .) | join(" ")'  <<< "$TAGS") \
+              $(printf 'quay.io/${{ secrets.QUAY_USERNAME }}/${{ matrix.image.name }}@sha256:%s ' *)
 
       - name: Inspect image
         id: inspect
         shell: bash
         run: |
-          docker buildx imagetools inspect ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image.name }}:${{ matrix.image.tags[0] }}
+          docker buildx imagetools inspect quay.io/${{ secrets.QUAY_USERNAME }}/${{ matrix.image.name }}:${{ matrix.image.tags[0] }}
 
       - name: Build successful
         id: build-success

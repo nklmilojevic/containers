@@ -47,24 +47,27 @@ def get_latest_version(subdir, channel_name):
 def get_published_version(image_name):
     try:
         r = requests.get(
-            f"https://hub.docker.com/v2/repositories/{repo_owner}/{image_name}/tags",
-            params={"page_size": 100},
-            headers={
-                "Accept": "application/json",
-            },
-            auth=(os.environ.get("DOCKERHUB_USERNAME"), os.environ.get("DOCKERHUB_TOKEN"))
+            f"https://quay.io/api/v1/repository/{repo_owner}/{image_name}/tag/",
+            params={"limit": 100},
+            headers={"Content-Type": "application/json"}
         )
 
         if r.status_code != 200:
             return None
 
         data = r.json()
-        tags = [tag['name'] for tag in data.get('results', [])]
+        tags = []
+
+        # Extract tags from Quay.io's response format
+        for tag in data.get('tags', []):
+            tag_name = tag.get('name')
+            if tag_name and tag_name != "rolling":
+                tags.append(tag_name)
 
         if "rolling" in tags:
             tags.remove("rolling")
             # Assume the longest string is the complete version number
-            return max(tags, key=len) if tags else None
+            return max(tags, key=len)
 
         return None
     except requests.exceptions.RequestException:
