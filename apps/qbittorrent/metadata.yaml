@@ -3,14 +3,8 @@ app: qbittorrent
 semver: true
 channels:
   - name: stable
-    platforms: ["linux/amd64", "linux/arm64"]
+    platforms: ["linux/amd64"]
     stable: true
-    tests:
-      enabled: true
-      type: web
-  - name: beta
-    platforms: ["linux/amd64", "linux/arm64"]
-    stable: false
     tests:
       enabled: true
       type: web
