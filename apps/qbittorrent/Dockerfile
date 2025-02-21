@@ -20,40 +20,31 @@ WORKDIR /app
 #hadolint ignore=DL3018,DL3059
 RUN \
     apk add --no-cache \
-        bash \
-        ca-certificates \
-        catatonit \
-        coreutils \
-        curl \
-        geoip \
-        jo \
-        jq \
-        nano \
-        p7zip \
-        python3 \
-        py3-pip \
-        qt6-qtbase \
-        qt6-qtbase-sqlite \
-        trurl \
-        tzdata \
+    bash \
+    ca-certificates \
+    catatonit \
+    coreutils \
+    curl \
+    geoip \
+    jo \
+    jq \
+    nano \
+    p7zip \
+    python3 \
+    py3-pip \
+    qt6-qtbase \
+    qt6-qtbase-sqlite \
+    trurl \
+    tzdata \
     && \
     case "${TARGETPLATFORM}" in \
-        'linux/amd64') export ARCH="x86_64" ;; \
-        'linux/arm64') export ARCH="aarch64" ;; \
+    'linux/amd64') export ARCH="x86_64" ;; \
+    'linux/arm64') export ARCH="aarch64" ;; \
     esac \
     && \
     mkdir -p /app \
-    && \
-    case "${CHANNEL}" in \
-        'stable') \
-            export RELEASE=$(curl -sL "https://github.com/userdocs/qbittorrent-nox-static/releases/latest/download/dependency-version.json" | jq -r '. | "release-\(.qbittorrent)_v\(.libtorrent_1_2)"') \
-            && curl -fsSL -o /app/qbittorrent-nox "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${RELEASE}/${ARCH}-qbittorrent-nox" \
-        ;; \
-        'beta') \
-            export RELEASE=$(curl -sL "https://github.com/userdocs/qbittorrent-nox-static/releases/latest/download/dependency-version.json" | jq -r '. | "release-\(.qbittorrent)_v\(.libtorrent_2_0)"') \
-            && curl -fsSL -o /app/qbittorrent-nox "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${RELEASE}/${ARCH}-qbittorrent-nox" \
-        ;; \
-    esac \
+    && export RELEASE=$(curl -sL "https://github.com/userdocs/qbittorrent-nox-static/releases/latest/download/dependency-version.json" | jq -r '. | "release-\(.qbittorrent)_v\(.libtorrent_2_0)"') \
+    && curl -fsSL -o /app/qbittorrent-nox "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${RELEASE}/${ARCH}-qbittorrent-nox" \
     && chown -R root:root /app/qbittorrent-nox \
     && chmod -R 755 /app/qbittorrent-nox \
     && rm -rf /tmp/*
