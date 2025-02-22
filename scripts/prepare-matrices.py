@@ -72,38 +72,23 @@ def get_published_version(image_name):
             headers={"Content-Type": "application/json"}
         )
 
-        logging.info(f"Quay.io API Status Code: {r.status_code}")
-
         if r.status_code != 200:
             logging.error(f"Failed to get tags, status code: {r.status_code}")
             return None
 
         data = r.json()
-        # Get tags sorted by creation time (newest first)
-        tags = []
-        for tag in data.get('tags', []):
-            if tag['name'] != 'rolling':
-                tags.append({
-                    'name': tag['name'],
-                    'start_ts': tag.get('start_ts', 0)
-                })
+        # Get all non-rolling tags
+        tags = [tag['name'] for tag in data.get('tags', []) if tag['name'] != 'rolling']
+        logging.info(f"Found tags: {tags}")
 
-        # Sort by timestamp, newest first
-        tags.sort(key=lambda x: x['start_ts'], reverse=True)
-        version_tags = [tag['name'] for tag in tags]
-        logging.info(f"Found tags (excluding 'rolling'): {version_tags}")
+        # Get the longest matching version (to avoid partial matches like '5.0' when '5.0.4' exists)
+        matching_versions = sorted(tags, key=len, reverse=True)
 
-        # Find the exact version match
-        for tag in version_tags:
-            # Skip single-number versions (like "16")
-            if tag.count('.') == 0:
-                continue
-            # Return the first tag that exactly matches our format
-            if '.' in tag and all(part.isdigit() for part in tag.split('.')):
-                logging.info(f"Selected published version: {tag}")
-                return tag
+        if matching_versions:
+            result = matching_versions[0]
+            logging.info(f"Selected published version: {result}")
+            return result
 
-        logging.info("No valid version tags found")
         return None
     except requests.exceptions.RequestException as e:
         logging.error(f"Request error: {str(e)}")
