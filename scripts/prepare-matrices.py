@@ -90,37 +90,25 @@ def get_published_version(image_name):
 
         # Sort by timestamp, newest first
         tags.sort(key=lambda x: x['start_ts'], reverse=True)
-
-        # Get all version tags, excluding 'rolling'
         version_tags = [tag['name'] for tag in tags]
         logging.info(f"Found tags (excluding 'rolling'): {version_tags}")
 
-        # Find the most recent tag that has at least 2 dots (x.y.z format)
-        # or matches the format x.y.z-hash for Plex-style versions
-        full_version = None
+        # Find the exact version match
         for tag in version_tags:
-            # Check for Plex-style versions (x.y.z.build-hash)
-            if '-' in tag:
-                full_version = tag
-                break
-            # Check for regular versions with at least 2 dots (x.y.z)
-            if tag.count('.') >= 2:
-                full_version = tag
-                break
-            # Check for versions with 1 dot but longer (like 5.0.4)
-            if tag.count('.') == 1 and len(tag.split('.')[1]) > 1:
-                full_version = tag
-                break
-
-        if full_version:
-            logging.info(f"Selected published version: {full_version}")
-            return full_version
+            # Skip single-number versions (like "16")
+            if tag.count('.') == 0:
+                continue
+            # Return the first tag that exactly matches our format
+            if '.' in tag and all(part.isdigit() for part in tag.split('.')):
+                logging.info(f"Selected published version: {tag}")
+                return tag
 
         logging.info("No valid version tags found")
         return None
     except requests.exceptions.RequestException as e:
         logging.error(f"Request error: {str(e)}")
         return None
+
 
 
 def get_image_metadata(subdir, meta, forRelease=False, force=False, channels=None):
