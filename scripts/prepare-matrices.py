@@ -51,7 +51,6 @@ def get_latest_version(subdir, channel_name):
     logging.info(f"\nGetting latest version for channel: {channel_name}")
     ci_dir = os.path.join(subdir, "ci")
 
-    # Try each possible location for version scripts
     if os.path.isfile(os.path.join(ci_dir, "latest.py")):
         return get_latest_version_py(os.path.join(ci_dir, "latest.py"), channel_name)
     elif os.path.isfile(os.path.join(ci_dir, "latest.sh")):
@@ -80,19 +79,23 @@ def get_published_version(image_name):
             return None
 
         data = r.json()
-        # Get unique tags
-        tags = list(set(tag['name'] for tag in data.get('tags', [])))
-        logging.info(f"Found unique tags: {tags}")
+        # Get tags sorted by creation time (newest first)
+        tags = []
+        for tag in data.get('tags', []):
+            if tag['name'] != 'rolling':
+                tags.append({
+                    'name': tag['name'],
+                    'start_ts': tag.get('start_ts', 0)
+                })
 
-        # Filter for version tags and remove 'rolling'
-        version_tags = [tag for tag in tags
-                       if tag != "rolling"
-                       and all(part.isdigit() for part in tag.split("."))]
-        logging.info(f"Filtered version tags: {version_tags}")
+        # Sort by timestamp, newest first
+        tags.sort(key=lambda x: x['start_ts'], reverse=True)
+        version_tags = [tag['name'] for tag in tags]
+
+        logging.info(f"Found version tags (newest first): {version_tags}")
 
         if version_tags:
-            # Use semantic versioning comparison
-            result = max(version_tags, key=lambda x: [int(i) for i in x.split(".")])
+            result = version_tags[0]
             logging.info(f"Selected published version: {result}")
             return result
 
