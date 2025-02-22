@@ -52,20 +52,29 @@ def get_published_version(image_name):
             headers={"Content-Type": "application/json"}
         )
 
+        print(f"Status Code: {r.status_code}")
+        print(f"Response: {r.text}")  # Debug line
+
         if r.status_code != 200:
             return None
 
         data = r.json()
         tags = [tag['name'] for tag in data.get('tags', [])]
+        print(f"Found tags: {tags}")  # Debug line
 
-        if "rolling" in tags:
-            tags.remove("rolling")
-            # Assume the longest string is the complete version number
-            return max(tags, key=len) if tags else None
+        version_tags = [tag for tag in tags if tag != "rolling" and tag.replace(".", "").isdigit()]
+        print(f"Version tags: {version_tags}")  # Debug line
+
+        if version_tags:
+            result = max(version_tags, key=len)
+            print(f"Selected version: {result}")  # Debug line
+            return result
 
         return None
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {str(e)}")  # Debug line
         return None
+
 
 def get_image_metadata(subdir, meta, forRelease=False, force=False, channels=None):
     imagesToBuild = {
