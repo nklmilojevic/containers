@@ -1,4 +1,4 @@
-FROM docker.io/library/python:3.13.5-alpine
+FROM docker.io/library/python:3.13.5-slim-bookworm
 
 ARG VERSION
 
@@ -14,26 +14,28 @@ ENV \
   HOME="/config" \
   PLATFORMIO_CORE_DIR=/cache/pio \
   ESPHOME_BUILD_PATH=/cache/build \
-  ESPHOME_DATA_DIR=/cache/data
+  ESPHOME_DATA_DIR=/cache/data \
+  DEBIAN_FRONTEND=noninteractive
 
 USER root
 WORKDIR /app
 
 RUN \
-  apk add --no-cache \
-  build-base \
+  apt-get update \
+  && apt-get install -y --no-install-recommends \
+  build-essential \
   catatonit \
-  gcompat \
   git \
   && pip install uv \
-  && uv pip install --find-links "https://wheels.home-assistant.io/musllinux/" "setuptools" "esphome[displays]==${VERSION}" \
+  && uv pip install "setuptools" "esphome[displays]==${VERSION}" \
   && mkdir /cache \
   && chown nobody:nogroup /cache \
+  && apt-get clean \
   && rm -rf \
+  /var/lib/apt/lists/* \
   /tmp/* \
   /wheels
 
-# COPY ./entrypoint.sh /entrypoint.sh
 COPY ./apps/esphome/entrypoint.sh /entrypoint.sh
 USER nobody:nogroup
 WORKDIR /config
