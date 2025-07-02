@@ -1,9 +1,15 @@
-FROM docker.io/library/python:3.13-alpine3.22
+FROM docker.io/library/alpine:3.22
+
 ARG TARGETPLATFORM
 ARG VERSION
 ARG CHANNEL
 
+ENV UMASK="0002" \
+    TZ="Etc/UTC"
+
 ENV QBT_CONFIRM_LEGAL_NOTICE=1 \
+    QBT_WEBUI_PORT=8080 \
+    QBT_TORRENTING_PORT=50413 \
     HOME="/config" \
     XDG_CONFIG_HOME="/config" \
     XDG_DATA_HOME="/config"
@@ -11,21 +17,34 @@ ENV QBT_CONFIRM_LEGAL_NOTICE=1 \
 USER root
 WORKDIR /app
 
+#hadolint ignore=DL3018,DL3059
 RUN \
     apk add --no-cache \
-    7zip \
     bash \
     ca-certificates \
     catatonit \
     coreutils \
     curl \
+    geoip \
+    jo \
     jq \
     nano \
+    p7zip \
+    python3 \
+    py3-pip \
+    qt6-qtbase \
+    qt6-qtbase-sqlite \
+    trurl \
     tzdata \
     && \
+    case "${TARGETPLATFORM}" in \
+    'linux/amd64') export ARCH="x86_64" ;; \
+    'linux/arm64') export ARCH="aarch64" ;; \
+    esac \
+    && \
     mkdir -p /app \
-    && LIBTORRENT=$(curl -sL "https://github.com/userdocs/qbittorrent-nox-static/releases/latest/download/dependency-version.json" | jq -r '.libtorrent_2_0') \
-    && curl -fsSL -o /app/qbittorrent-nox "https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-${VERSION}_v${LIBTORRENT}/${TARGETARCH}-qbittorrent-nox" \
+    && export RELEASE=$(curl -sL "https://github.com/userdocs/qbittorrent-nox-static/releases/latest/download/dependency-version.json" | jq -r '. | "release-\(.qbittorrent)_v\(.libtorrent_2_0)"') \
+    && curl -fsSL -o /app/qbittorrent-nox "https://github.com/userdocs/qbittorrent-nox-static/releases/download/${RELEASE}/${ARCH}-qbittorrent-nox" \
     && chown -R root:root /app/qbittorrent-nox \
     && chmod -R 755 /app/qbittorrent-nox \
     && rm -rf /tmp/*
@@ -33,10 +52,10 @@ RUN \
 COPY ./apps/qbittorrent/qBittorrent.conf /app/qBittorrent.conf
 COPY ./apps/qbittorrent/entrypoint.sh /entrypoint.sh
 
-COPY --from=ghcr.io/linuxserver/unrar:latest /usr/bin/unrar-alpine /usr/bin/unrar
-
 USER nobody:nogroup
 WORKDIR /config
 VOLUME ["/config"]
 
 ENTRYPOINT ["/usr/bin/catatonit", "--", "/entrypoint.sh"]
+
+LABEL org.opencontainers.image.source="https://github.com/qbittorrent/qBittorrent"
