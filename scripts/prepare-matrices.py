@@ -68,7 +68,7 @@ def get_published_version(image_name):
     try:
         r = requests.get(
             f"https://quay.io/api/v1/repository/{repo_owner}/{image_name}/tag/",
-            params={"limit": 100},
+            params={"limit": 100, "onlyActiveTags": True},
             headers={"Content-Type": "application/json"}
         )
 
@@ -81,15 +81,25 @@ def get_published_version(image_name):
         tags = [tag['name'] for tag in data.get('tags', []) if tag['name'] != 'rolling']
         logging.info(f"Found tags: {tags}")
 
-        # Get the longest matching version (to avoid partial matches like '5.0' when '5.0.4' exists)
-        matching_versions = sorted(tags, key=len, reverse=True)
+        if not tags:
+            return None
 
-        if matching_versions:
-            result = matching_versions[0]
+        # Sort versions properly (newest first)
+        # This handles semantic versioning like 2025.6.3 correctly
+        def version_key(v):
+            parts = v.split('.')
+            return tuple(int(p) if p.isdigit() else p for p in parts)
+        
+        try:
+            sorted_versions = sorted(tags, key=version_key, reverse=True)
+            result = sorted_versions[0]
             logging.info(f"Selected published version: {result}")
             return result
-
-        return None
+        except (ValueError, AttributeError):
+            # Fallback to string sorting if version parsing fails
+            result = sorted(tags, reverse=True)[0]
+            logging.info(f"Selected published version (fallback): {result}")
+            return result
     except requests.exceptions.RequestException as e:
         logging.error(f"Request error: {str(e)}")
         return None
