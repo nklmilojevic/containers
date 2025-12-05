@@ -77,7 +77,6 @@ jobs:
           echo "matrices=${matrices}" >> $GITHUB_OUTPUT
           echo "${matrices}"
 
-
   build-platform-images:
     name: Build/Test ${{ matrix.image.name }} (${{ matrix.image.platform }})
     needs: prepare
@@ -86,7 +85,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: ["${{ fromJSON(needs.prepare.outputs.matrices).imagePlatforms }}"]
+        image:
+          ["${{ fromJSON(needs.prepare.outputs.matrices).imagePlatforms }}"]
     steps:
       - name: Set Quay.io Owner
         shell: bash
@@ -145,8 +145,6 @@ jobs:
       - name: Setup Goss
         if: ${{ matrix.image.tests_enabled }}
         uses: e1himself/goss-installation-action@v1
-        with:
-          version: latest
 
       - name: Prepare Build Outputs
         id: prepare-build-outputs
