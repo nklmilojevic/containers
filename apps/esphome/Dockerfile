@@ -1,4 +1,4 @@
-FROM docker.io/library/python:3.13.7-slim-bookworm
+FROM docker.io/library/python:3.14.2-slim-bookworm
 
 ARG VERSION
 
