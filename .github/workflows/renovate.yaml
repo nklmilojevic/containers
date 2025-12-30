@@ -3,13 +3,40 @@
 name: Renovate
 
 on:
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: Dry Run
+        default: "false"
+        required: false
+      logLevel:
+        description: Log Level
+        default: debug
+        required: false
+      version:
+        description: Renovate version
+        default: latest
+        required: false
+  schedule:
+    - cron: "0 * * * *"
   push:
     branches:
       - main
     paths:
       - .renovaterc.json5
-      - .renovate/**.json5
-  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  LOG_LEVEL: "${{ inputs.logLevel || 'debug' }}"
+  RENOVATE_AUTODISCOVER: true
+  RENOVATE_AUTODISCOVER_FILTER: "${{ github.repository }}"
+  RENOVATE_DRY_RUN: "${{ inputs.dryRun == true }}"
+  RENOVATE_PLATFORM: github
+  RENOVATE_PLATFORM_COMMIT: true
+  WORKFLOW_RENOVATE_VERSION: "${{ inputs.version || 'latest' }}"
 
 jobs:
   renovate:
@@ -22,30 +49,15 @@ jobs:
         with:
           app-id: ${{ secrets.BOT_APP_ID }}
           private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
 
-      - name: Run Renovate
-        uses: codex-/return-dispatch@2277c7e64ca38a7350b95cfec2d6715ccebb7108 # v3.0.1
-        id: dispatch
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           token: ${{ steps.app-token.outputs.token }}
-          owner: ${{ github.repository_owner }}
-          repo: .github
-          ref: main
-          workflow: renovate.yaml
-          workflow_inputs: |-
-            { "autodiscoverFilter": "${{ github.event.repository.name }}" }
 
-      - name: Await Renovate Completion
-        uses: Codex-/await-remote-run@a56c556e6434d2d7ec9438dc656143b39532324e # v1.13.0
+      - name: Renovate
+        uses: renovatebot/github-action@e084b5ac6fd1f81024e5c0de0fcd0adaade30a92 # v44.2.0
         with:
+          configurationFile: .renovaterc.json5
           token: ${{ steps.app-token.outputs.token }}
-          owner: ${{ github.repository_owner }}
-          repo: .github
-          run_id: ${{ steps.dispatch.outputs.run_id }}
-
-      - name: Renovate Output
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |-
-          gh run view --repo ${{ github.repository_owner }}/.github --log ${{ steps.dispatch.outputs.run_id }}
+          renovate-version: ${{ env.WORKFLOW_RENOVATE_VERSION }}
