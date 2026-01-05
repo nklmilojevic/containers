@@ -6,7 +6,7 @@ variable "APP" {
 
 variable "VERSION" {
   // renovate: datasource=custom.readarr-develop depName=readarr versioning=loose
-  default = "0.4.10.2734"
+  default = "0.4.18.2805"
 }
 
 variable "SOURCE" {
