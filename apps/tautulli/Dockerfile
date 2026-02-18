@@ -22,27 +22,29 @@ WORKDIR /app
 
 RUN \
     apk add --no-cache \
-        bash \
-        ca-certificates \
-        catatonit \
-        coreutils \
-        curl \
-        jq \
-        nano \
-        tzdata \
+    bash \
+    ca-certificates \
+    catatonit \
+    coreutils \
+    curl \
+    jq \
+    nano \
+    tzdata \
     && \
     apk add --no-cache --virtual .build-deps \
-        build-base \
-        cargo \
-        libffi-dev \
-        musl-dev \
-        openssl-dev \
-    && pip install uv \
+    build-base \
+    cargo \
+    libffi-dev \
+    musl-dev \
+    openssl-dev \
+    && pip install \
+    uv \
+    'setuptools==81' \
     && uv pip install \
-        --requirement "https://raw.githubusercontent.com/Tautulli/tautulli-baseimage/python3/requirements.txt" \
+    --requirement "https://raw.githubusercontent.com/Tautulli/tautulli-baseimage/python3/requirements.txt" \
     && mkdir -p /app \
     && curl -fsSL "https://github.com/Tautulli/Tautulli/archive/v${VERSION}.tar.gz" \
-        | tar xzf - -C /app --strip-components 1 \
+    | tar xzf - -C /app --strip-components 1 \
     && echo "v${VERSION}" > /app/version.txt \
     && echo "master" > /app/branch.txt \
     && chown -R root:root /app && chmod -R 755 /app \
