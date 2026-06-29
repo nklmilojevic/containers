@@ -1,6 +1,10 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["github>home-operations/renovate-config"],
+  // No Helm charts in this repo; disable inherited helm-docs/helm-schema post-upgrade tasks
+  postUpgradeTasks: {
+    commands: [],
+  },
   customManagers: [
     {
       customType: "regex",
