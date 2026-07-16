@@ -29,6 +29,6 @@ RUN WEB_DEFAULT_API="${WEB_DEFAULT_API}" pnpm --dir web build
 FROM docker.io/nginxinc/nginx-unprivileged:1.29-alpine
 
 COPY --from=build /src/web/build /usr/share/nginx/html
-COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./defaults/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8080
