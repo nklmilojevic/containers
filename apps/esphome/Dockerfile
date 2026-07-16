@@ -22,7 +22,9 @@ ENV \
     HOME="/config" \
     PLATFORMIO_CORE_DIR=/cache/pio \
     ESPHOME_BUILD_PATH=/cache/build \
-    ESPHOME_DATA_DIR=/cache/data
+    ESPHOME_DATA_DIR=/cache/data \
+    ESPHOME_ESP_IDF_PREFIX=/cache/idf \
+    ESPHOME_SDK_NRF_PREFIX=/cache/sdk-nrf
 
 USER root
 WORKDIR /app
@@ -38,6 +40,7 @@ RUN \
         iputils-ping \
         libcairo2 \
         libmagic1 \
+        libusb-1.0-0 \
         openssh-client \
         patch \
     && pip install uv \
