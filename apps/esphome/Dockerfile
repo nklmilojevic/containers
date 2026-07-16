@@ -3,6 +3,9 @@
 FROM docker.io/library/python:3.13-slim
 ARG VERSION
 
+# renovate: datasource=pypi depName=esphome-device-builder
+ARG DEVICE_BUILDER_VERSION=1.6.1
+
 ENV \
     CRYPTOGRAPHY_DONT_BUILD_RUST=1 \
     PIP_BREAK_SYSTEM_PACKAGES=1 \
@@ -41,6 +44,8 @@ RUN \
     && uv pip install \
         setuptools \
         "esphome[displays]==${VERSION}" \
+        "esphome-device-builder==${DEVICE_BUILDER_VERSION}" \
+    && mkdir -p /config /cache && chown nobody:nogroup -R /config /cache \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && apt-get autoremove -y \
     && apt-get clean \
