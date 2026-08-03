@@ -5,8 +5,12 @@ variable "APP" {
 }
 
 variable "VERSION" {
-  // renovate: datasource=github-tags depName=nklmilojevic/petkit-local
-  default = "v1.6.0"
+  // Pinned by hand — renovate intentionally does NOT manage this. The fork
+  // still carries upstream's plain `v1.6.0` tag, and semver ranks 1.6.0 ABOVE
+  // the 1.6.0-nkl.N fork prereleases, so a renovate rule here "upgrades" us
+  // straight back to unpatched upstream (it did, once). Bump this by hand when
+  // cutting a new fork tag; drop the fork entirely once the fixes land upstream.
+  default = "v1.6.0-nkl.3"
 }
 
 variable "SOURCE" {
