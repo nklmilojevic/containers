@@ -6,7 +6,7 @@ variable "APP" {
 
 variable "VERSION" {
   // renovate: datasource=github-tags depName=nklmilojevic/petkit-local
-  default = "v1.6.0-nkl.1"
+  default = "v1.6.0-nkl.2"
 }
 
 variable "SOURCE" {
