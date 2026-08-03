@@ -28,6 +28,12 @@ RUN apk add --no-cache catatonit ffmpeg \
     && mkdir -p /data /media/petkit \
     && chown -R 1000:1000 /data /media/petkit
 
+# Overlay: fix Ingenic (T5/T6/T7/D4H/D4SH) BLE provisioning, which upstream
+# 1.6.0 still sends as bare JSON — those devices answer only to the framed
+# FA FC FD 46 envelope written as one writeWithoutResponse. Drop this once the
+# fix is upstream. Rebuilt from upstream's own app.js for ${VERSION}.
+COPY ./defaults/app.js ./petkit_local/web/static/app.js
+
 USER 1000
 WORKDIR /data
 VOLUME ["/data"]
