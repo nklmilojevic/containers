@@ -5,12 +5,12 @@ variable "APP" {
 }
 
 variable "VERSION" {
-  // renovate: datasource=github-tags depName=alex-so-3/petkit-local
-  default = "v1.6.0"
+  // renovate: datasource=github-tags depName=nklmilojevic/petkit-local
+  default = "v1.6.0-nkl.1"
 }
 
 variable "SOURCE" {
-  default = "https://github.com/alex-so-3/petkit-local"
+  default = "https://github.com/nklmilojevic/petkit-local"
 }
 
 group "default" {

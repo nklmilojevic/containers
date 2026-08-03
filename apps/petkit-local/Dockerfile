@@ -18,8 +18,12 @@ WORKDIR /opt/petkit-local
 
 # ffmpeg remuxes device camera clips; go2rtc republishes the camera stream as
 # RTSP. Both degrade gracefully on camera-less devices.
+# Built from nklmilojevic/petkit-local (fork of alex-so-3/petkit-local) at tag
+# ${VERSION}, which carries the D4H fixes (Ingenic BLE provisioning + camera
+# feeder IP). Upstream PRs are open; revert SOURCE/VERSION to alex-so-3 once
+# they merge. The GitHub tag archive extracts to petkit-local-${VERSION#v}/.
 RUN apk add --no-cache catatonit ffmpeg \
-    && wget -qO- "https://github.com/alex-so-3/petkit-local/archive/refs/tags/${VERSION}.tar.gz" | tar xz -C /tmp \
+    && wget -qO- "https://github.com/nklmilojevic/petkit-local/archive/refs/tags/${VERSION}.tar.gz" | tar xz -C /tmp \
     && pip install -r "/tmp/petkit-local-${VERSION#v}/addon/requirements.txt" \
     && cp -r "/tmp/petkit-local-${VERSION#v}/addon/petkit_local" ./petkit_local \
     && rm -rf "/tmp/petkit-local-${VERSION#v}" \
@@ -27,12 +31,6 @@ RUN apk add --no-cache catatonit ffmpeg \
     && chmod +x /usr/local/bin/go2rtc \
     && mkdir -p /data /media/petkit \
     && chown -R 1000:1000 /data /media/petkit
-
-# Overlay: fix Ingenic (T5/T6/T7/D4H/D4SH) BLE provisioning, which upstream
-# 1.6.0 still sends as bare JSON — those devices answer only to the framed
-# FA FC FD 46 envelope written as one writeWithoutResponse. Drop this once the
-# fix is upstream. Rebuilt from upstream's own app.js for ${VERSION}.
-COPY ./defaults/app.js ./petkit_local/web/static/app.js
 
 USER 1000
 WORKDIR /data
