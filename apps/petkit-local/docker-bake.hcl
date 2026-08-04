@@ -10,7 +10,7 @@ variable "VERSION" {
   // the 1.6.0-nkl.N fork prereleases, so a renovate rule here "upgrades" us
   // straight back to unpatched upstream (it did, once). Bump this by hand when
   // cutting a new fork tag; drop the fork entirely once the fixes land upstream.
-  default = "v1.6.0-nkl.10"
+  default = "v1.6.0-nkl.11"
 }
 
 variable "SOURCE" {
