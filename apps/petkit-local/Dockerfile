@@ -18,12 +18,13 @@ WORKDIR /opt/petkit-local
 
 # ffmpeg remuxes device camera clips; go2rtc republishes the camera stream as
 # RTSP. Both degrade gracefully on camera-less devices.
-# Built from nklmilojevic/petkit-local (fork of alex-so-3/petkit-local) at tag
-# ${VERSION}, which carries the D4H fixes (Ingenic BLE provisioning + camera
-# feeder IP). Upstream PRs are open; revert SOURCE/VERSION to alex-so-3 once
-# they merge. The GitHub tag archive extracts to petkit-local-${VERSION#v}/.
+# Built from upstream alex-so-3/petkit-local at tag ${VERSION}. The fork-era
+# D4H fixes (BLE provisioning, camera feeder IP, desiccant countdown, feed-clip
+# upload chain, cameraMultiNew schedule objects, bucket-cert SAN, feed totals,
+# feedSound, cacert dedup) all landed upstream by v2.1.0. The GitHub tag
+# archive extracts to petkit-local-${VERSION#v}/.
 RUN apk add --no-cache catatonit ffmpeg \
-    && wget -qO- "https://github.com/nklmilojevic/petkit-local/archive/refs/tags/${VERSION}.tar.gz" | tar xz -C /tmp \
+    && wget -qO- "https://github.com/alex-so-3/petkit-local/archive/refs/tags/${VERSION}.tar.gz" | tar xz -C /tmp \
     && pip install -r "/tmp/petkit-local-${VERSION#v}/addon/requirements.txt" \
     && cp -r "/tmp/petkit-local-${VERSION#v}/addon/petkit_local" ./petkit_local \
     && rm -rf "/tmp/petkit-local-${VERSION#v}" \
