@@ -1,0 +1,88 @@
+<!-- The face cropper. Static markup rather than something loadPets() renders,
+     because #petsView is replaced wholesale on every mutation and a <canvas>
+     inside it would lose its bitmap and transform. It carries no src/href: the
+     image is drawn from a Blob the user picks, never fetched. -->
+<div id="cropModal" class="modal hidden" data-action="crop-backdrop">
+  <div class="modal-box crop-box">
+    <div class="crop-head">
+      <h3 id="cropTitle">Add a mugshot</h3>
+      <button class="ghost act" data-action="crop-close">✕</button>
+    </div>
+
+    <div id="cropPick" class="dropzone" data-action="crop-browse">
+      <input id="cropFile" type="file" accept="image/*" class="hidden"
+             aria-label="Choose a photo" data-change="crop-file">
+      <div class="dz-big">🐈</div>
+      <b>Drop a photo here, or click to choose one</b>
+      <span class="mut">Any image format your browser can open</span>
+    </div>
+
+    <div id="cropStage" class="hidden">
+      <div class="crop-work">
+        <div class="crop-canvas-wrap">
+          <canvas id="cropCanvas" width="360" height="360"></canvas>
+          <!-- Alignment guide. The device is fed a 224x224 face chip, and every
+               reference photo PetKit's own cloud served was pre-cropped that
+               tightly — so "a photo of the cat" is the wrong instinct and the
+               outline is here to correct it before the upload, not after.
+               Drawn twice: a dark stroke under a light one, so it stays legible
+               on both a black cat and a white one. -->
+          <div class="crop-frame">
+            <!-- The viewBox is tighter than the artwork (which is drawn on
+                 0..100), so the head is scaled up and its edges run off the
+                 frame rather than stopping politely inside it. Scaling here
+                 keeps the mask and the face marks in proportion; the dimming
+                 rect is larger than the viewBox, so it still covers everything
+                 visible. -->
+            <svg class="crop-guide" viewBox="5 4 90 90" aria-hidden="true" focusable="false"
+                 preserveAspectRatio="none">
+              <mask id="catMask">
+                <!-- White shows the dimming, black lets the photo through: dim
+                     everything, then punch the head out. The head runs edge to
+                     edge on purpose — the device is fed a 224x224 face chip, so
+                     anything short of "the head fills the frame" wastes most of
+                     the pixels the NPU gets to work with. -->
+                <rect width="100" height="100" fill="#fff" />
+                <path fill="#000" d="M50 98
+                  C25 98 4 82 4 60 C4 50 6 40 8 32
+                  L12 3 L36 22 C44 19 56 19 64 22 L88 3 L92 32
+                  C94 40 96 50 96 60 C96 82 75 98 50 98 Z" />
+              </mask>
+              <rect width="100" height="100" mask="url(#catMask)" />
+              <!-- Eyes, nose and whiskers, drawn OVER the cutout as outlines
+                   rather than solid shapes: filled ones sat on the cat's own
+                   eyes and hid the feature you line the photo up by. -->
+              <g class="cg-marks">
+                <circle class="cg-solid" cx="33" cy="50" r="4.5" />
+                <circle class="cg-solid" cx="67" cy="50" r="4.5" />
+                <path class="cg-solid" d="M45 63 L55 63 L50 70 Z" />
+                <path d="M50 70 q -5 7 -10 2 M50 70 q 5 7 10 2" />
+                <path d="M39 68 L9 61 M38 73 L7 73 M39 78 L9 85" />
+                <path d="M61 68 L91 61 M62 73 L93 73 M61 78 L91 85" />
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="crop-side">
+          <div class="crop-preview-wrap">
+            <div class="crop-preview-label mut">What the device sees</div>
+            <canvas id="cropPreview" width="224" height="224"></canvas>
+          </div>
+          <ul id="cropRules" class="facerules"></ul>
+        </div>
+      </div>
+      <div class="crop-zoom">
+        <span class="mut">Zoom</span>
+        <input id="cropZoom" type="range" min="100" max="800" value="100"
+               aria-label="Zoom" data-input="crop-zoom">
+        <button class="ghost act" data-action="crop-reset">Reset</button>
+      </div>
+      <div class="crop-actions">
+        <span id="cropHint" class="mut">Zoom in until the head fills the outline — closer than feels right.</span>
+        <span class="grow"></span>
+        <button class="ghost act" data-action="crop-back">Choose another</button>
+        <button class="act" data-action="crop-save">Use this photo</button>
+      </div>
+    </div>
+  </div>
+</div>

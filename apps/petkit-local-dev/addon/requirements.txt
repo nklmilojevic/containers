@@ -1,0 +1,9 @@
+aiohttp>=3.9,<4
+amqtt>=0.11,<1
+aiomqtt>=2.0,<3
+cryptography>=42
+pyelftools>=0.30
+SQLAlchemy[asyncio]>=2.0,<3
+aiosqlite>=0.19
+Jinja2>=3.1
+aiohttp-jinja2>=1.6

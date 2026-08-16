@@ -1,0 +1,13 @@
+# Overrides the harness's include/.dockerignore, which denies `/*` and only
+# lets a few named paths through. The vendored source lives under ./addon/
+# and needs to reach the build context.
+/*
+!defaults/
+!scripts/
+!entrypoint.sh
+!addon/
+addon/tests/
+addon/.venv/
+addon/**/__pycache__/
+addon/**/.pytest_cache/
+addon/**/.mypy_cache/
