@@ -1,0 +1,8 @@
+# Prettier resolves this file relative to the working directory, and the dev
+# commands are documented as `cd addon` — so the root .prettierignore is not
+# found from here. Same list, same reason: CI formats only the panel's own
+# CSS/JS, and a bare `prettier --write .` must not touch anything else.
+*.md
+*.yml
+*.yaml
+petkit_local/web/templates/

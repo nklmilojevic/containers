@@ -1,20 +1,18 @@
 target "docker-metadata-action" {}
 
 variable "APP" {
-  default = "petkit-local"
+  default = "petkit-local-dev"
 }
 
 variable "VERSION" {
-  // Pinned by hand — renovate intentionally does NOT manage this. The fork
-  // carries upstream's `v2.1.0` tag AS IS, and semver ranks 2.1.0 ABOVE the
-  // 2.1.0-nkl.N fork prereleases, so a renovate rule here "upgrades" us
-  // straight back to unpatched upstream. Bump by hand when cutting a new
-  // fork tag; drop the fork entirely once alex-so-3#21 lands.
+  // Bumped by hand every time addon/ changes — VERSION is the image tag, not
+  // an upstream version. Renovate deliberately does not touch it; the source
+  // is vendored, not fetched.
   default = "v2.1.0-nkl.1"
 }
 
 variable "SOURCE" {
-  default = "https://github.com/nklmilojevic/petkit-local"
+  default = "https://github.com/nklmilojevic/containers/tree/main/apps/petkit-local-dev"
 }
 
 group "default" {

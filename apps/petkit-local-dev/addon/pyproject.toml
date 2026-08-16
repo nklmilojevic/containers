@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "petkit-local"
+version = "2.1.0"
+description = "Local cloud replacement for PetKit litter boxes, feeders, fountains and purifiers"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+dependencies = [
+    "aiohttp>=3.9,<4",
+    "amqtt>=0.11,<1",
+    "aiomqtt>=2.0,<3",
+    "cryptography>=42",
+    "pyelftools>=0.30",
+    # [asyncio] pulls in greenlet, which SQLAlchemy's async engine needs to
+    # bridge its synchronous internals — without it every await raises.
+    "SQLAlchemy[asyncio]>=2.0,<3",
+    "aiosqlite>=0.19",
+    "Jinja2>=3.1",
+    "aiohttp-jinja2>=1.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/alex-so-3/petkit-local"
+
+[project.scripts]
+petkit-local = "petkit_local.main:main"
+
+[tool.setuptools.packages.find]
+include = ["petkit_local*"]
+
+# The web panel ships its own template/static assets; without this they are
+# dropped from wheels/sdists (the Docker image copies the tree verbatim, so
+# only pip installs are affected).
+[tool.setuptools.package-data]
+# `static/*` does not match `static/bin/dropbear-mipsel`: a glob segment does
+# not cross a directory boundary. Without the second entry a pip-installed
+# copy ships no dropbear and the ssh patcher fails at open(). The Docker
+# image copies the tree verbatim, which is why this stayed hidden. Same reason
+# for `static/js/*`: the panel is a graph of ES modules under that directory,
+# and without it a pip-installed copy serves an index whose only script 404s.
+"petkit_local.web" = ["templates/*.html", "static/*", "static/bin/*", "static/js/*"]
+
+[tool.pytest.ini_options]
+python_files = "test_*.py"
+testpaths = ["tests"]
+# Tests are plain `async def test_*` functions with no decorator; auto mode is
+# what lets pytest-asyncio run them (and the async fixtures in conftest.py)
+# without every test file importing pytest.
+asyncio_mode = "auto"
+markers = [
+    "firmware: tests against real device firmware (skipped without --firmware)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+# Deliberately narrow. This is a lint gate against real defects — an unused
+# import, an undefined name, a shadowed builtin that changes behaviour — not a
+# style enforcer; the house style is CONTRIBUTING.md's and is applied by review.
+# PLC0415 (import not at top of file) earns its place on the same footing: a
+# lazy import reads as a claim that the module is expensive or cyclic, and in
+# this codebase it never is except where a `# noqa: PLC0415` says which cycle
+# it breaks.
+select = ["F", "E9", "B", "PLC0415"]
+ignore = [
+    # `raise ... from err` inside an except block. The codebase deliberately
+    # swallows and re-reports device-facing failures rather than chaining.
+    "B904",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests shadow fixtures and build deliberately odd inputs. They also import
+# inside the test body on purpose: the import is part of what the test pins,
+# and keeping it next to the assertion is what makes a one-symbol regression
+# readable — so PLC0415 is a production rule only.
+"tests/*" = ["F811", "B011", "PLC0415"]

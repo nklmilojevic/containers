@@ -1,0 +1,104 @@
+name: "PetKit Local"
+description: "Local cloud replacement for PetKit litter boxes, feeders, fountains and accessories"
+version: "2.1.0"
+slug: "petkitlocal"
+url: "https://github.com/alex-so-3/petkit-local"
+# Pull a published image rather than building on the user's machine. One
+# multi-architecture package, which is what the add-on documentation asks for
+# (`{arch}` in the name is its compatibility fallback), built and pushed by
+# .github/workflows/publish.yml.
+#
+# The Supervisor pulls `image:version`, taking the version from the line above,
+# so **a release is not usable until the matching tag has been published**. The
+# workflow refuses a `v*` git tag whose version disagrees with this file, which
+# is what keeps the two from drifting apart.
+image: "ghcr.io/alex-so-3/petkit-local"
+#
+# armv7 works only because the Dockerfile gives 32-bit ARM a glibc base — on the
+# musl one the other arches use, `cryptography` has no wheel and would have to
+# build from Rust source on a Pi. Read the Dockerfile's header before touching
+# its FROM lines; this list depends on them.
+#
+# Nobody here owns 32-bit ARM hardware, so armv7 is proven to BUILD (CI builds
+# every arch in this list under QEMU on each push) but has never been RUN on a
+# real device. Users no longer build it themselves, so a broken build now stops
+# the release instead of reaching them; running it is still untested.
+arch:
+  - aarch64
+  - amd64
+  - armv7
+# Device-facing ports. The device speaks plain HTTP to the API and MQTT over
+# TLS on 443 (confirmed for both ESP32 and Ingenic from a real capture).
+# The embedded broker's plain listener (1883) is internal-only for the bridge
+# and is intentionally NOT mapped to the host, so it never clashes with the
+# Mosquitto add-on. 443 must be free on the host (HA usually runs on 8123).
+ports:
+  80/tcp: 80
+  443/tcp: 443
+  1883/tcp: null
+  8099/tcp: null
+  8554/tcp: null
+  9000/tcp: 9000
+ports_description:
+  80/tcp: "PetKit device API (plain HTTP). A remap is honoured — the host port is put in the address devices are handed — but prefer host 80 anyway: a device redirected by DNS dials 80 with nowhere to tell it otherwise, and an ESP32 model provisioned with another port reaches Wi-Fi and then fails to reach the server."
+  443/tcp: "PetKit device MQTT over TLS. Port is inferred from localkit; change mqtt_tls_port + this mapping if your device dials a different one (e.g. 1883)."
+  1883/tcp: "Optional: expose the plain MQTT listener (internal by default; map a host port only if a device connects plaintext)."
+  8099/tcp: "Optional: expose the web panel directly on the LAN (no HA auth) for debugging/curl. Leave unmapped to use auth-only Ingress."
+  8554/tcp: "Camera RTSP, from the bundled go2rtc. Home Assistant reaches this over the internal network without a host port, so leave it unmapped unless you want the stream on your LAN. Mapping it to 8554 would clash with the go2rtc add-on."
+  9000/tcp: "Local S3/OSS bucket — device uploads photos/videos/events here instead of PetKit cloud. Files appear in HA media browser."
+# Use the Supervisor MQTT service if it's available (Mosquitto add-on), but
+# don't require it — many people run an external broker or none at all.
+services:
+  - mqtt:want
+# Read-only Supervisor API access — used to auto-detect the host LAN IP.
+hassio_api: true
+# Web panel in the HA sidebar (proxied via Ingress; internal port).
+ingress: true
+ingress_port: 8099
+panel_title: "PetKit Local"
+panel_icon: "mdi:cat"
+map:
+  - share:rw
+  - media:rw
+options:
+  # Leave api_url empty to auto-detect the HA host's LAN IP and the host port
+  # 80/tcp is published on (embedded devices can't resolve mDNS, so a `.local`
+  # name won't work). Set it only if the device should reach the add-on at an
+  # address the mapping cannot express — a reverse proxy, another interface.
+  # An explicit value is used verbatim, so include the port if it is not 80.
+  api_url: ""
+  # Where devices upload photos and video. Empty derives it from the host IP and
+  # the port 9000/tcp is published on. Set it when uploads must go through a
+  # different hostname, port or TLS-terminating proxy.
+  bucket_endpoint: ""
+  # Home Assistant's MQTT broker, for publishing device entities. Auto-detected
+  # from the Supervisor if you run the Mosquitto add-on; otherwise set your
+  # broker here (external broker, or anonymous). Leave host empty to skip HA
+  # publishing entirely (the device side still works).
+  ha_mqtt_host: ""
+  ha_mqtt_port: 1883
+  ha_mqtt_user: ""
+  ha_mqtt_pass: ""
+  log_level: "INFO"
+  offline_timeout: 180
+  mqtt_tls: true
+  mqtt_tls_port: 443
+  mqtt_strict_auth: false
+  # NOTE: proxy mode and payload capture are deliberately NOT options here.
+  # Both are debugging switches you flip while watching a device, so they live
+  # in the panel's Setup -> Settings and persist to
+  # /data/settings_overrides.json instead of needing an add-on restart.
+schema:
+  api_url: str?
+  bucket_endpoint: str?
+  ha_mqtt_host: str?
+  ha_mqtt_port: port
+  ha_mqtt_user: str?
+  ha_mqtt_pass: password?
+  log_level: list(DEBUG|INFO|WARNING|ERROR)
+  offline_timeout: int(30,3600)
+  mqtt_tls: bool
+  mqtt_tls_port: port
+  mqtt_strict_auth: bool
+startup: application
+boot: auto

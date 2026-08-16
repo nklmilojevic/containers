@@ -1,0 +1,1855 @@
+/* PetKit Local — the web panel's only stylesheet.
+ *
+ * One file on purpose. The panel is served over plain HTTP/1.1 (aiohttp, and
+ * HA Ingress in front of it), so every extra stylesheet is another serialised
+ * round trip, and `asset_version()` in web/panel.py hashes this file by name
+ * to cache-bust it.
+ *
+ * Sections, in order — the same names the JS uses for its own:
+ *
+ *   TOKENS        colours and the one layout variable, light and dark
+ *   BASE          reset, typography, links, the shared .row/.col/.sw/.stbl
+ *   CONTROLS      buttons, inputs, switches
+ *   DEVICE PANELS one collapsible <details> per device
+ *   SCHEDULES     the editors inside a device panel
+ *   AI / PETS     the pet list, its mugshots and the face cropper
+ *   LOG           the live traffic view and the device-log viewer
+ *   TIMELINE      the day view, its time gutter and media tiles
+ *   MODAL         the media lightbox
+ *   RESPONSIVE    the narrow-screen overrides that are not inline above
+ *   HELP          the `?` popover, parented to <body>
+ *
+ * Prettier-formatted, and CI checks it:
+ *   npx prettier@3 --write addon/petkit_local/web/static/styles.css
+ */
+
+/* ==== TOKENS ==== */
+:root {
+  color-scheme: light dark;
+  /* Timeline time column. Overridden to a wider value by `sizeTimeColumn()` in
+     timeline.js when the viewer's locale renders 12-hour times, which are 3-4
+     characters longer and used to overrun this track onto the row's content. */
+  --tl-time-w: 70px;
+  --bg: #f4f6f8;
+  --card: #fff;
+  --card2: #f9fafb;
+  --fg: #1c1e21;
+  --mut: #6b7280;
+  --line: #e3e6ea;
+  --accent: #0aa2e6;
+  --accent2: #0284c7;
+  --ok: #16a34a;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1216;
+    --card: #1a1e24;
+    --card2: #20262d;
+    --fg: #e6e8eb;
+    --mut: #9aa4b2;
+    --line: #2a2f36;
+  }
+}
+/* ==== BASE ==== */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  overflow-x: hidden;
+}
+body {
+  margin: 0;
+  font:
+    14px/1.5 system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-wrap: wrap;
+}
+header h1 {
+  font-size: 15px;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+nav {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+nav button {
+  background: none;
+  border: 0;
+  color: var(--mut);
+  padding: 7px 13px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+nav button:hover {
+  background: rgba(127, 127, 127, 0.08);
+}
+nav button.on {
+  background: var(--accent);
+  color: #fff;
+}
+.grow {
+  flex: 1;
+}
+.pill {
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--mut);
+  white-space: nowrap;
+}
+.pill.ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.pill.bad {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+.badge {
+  /* inline-block, not inline: an inline box breaks between words and the
+     background breaks with it, leaving half a pill on each line. An atomic
+     inline-level box moves to the next line whole instead. Not `nowrap` —
+     some badges are a whole sentence ("Device IP unknown — wait for a
+     state_report"), and those still need to wrap INSIDE the pill rather than
+     widen the card. */
+  display: inline-block;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.14);
+  color: var(--mut);
+}
+.badge.ok {
+  background: rgba(22, 163, 74, 0.16);
+  color: var(--ok);
+}
+.badge.off {
+  background: rgba(107, 114, 128, 0.16);
+  color: var(--mut);
+}
+.badge.bad {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--bad);
+}
+.badge.warn {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--warn);
+}
+/* A transport, not a health state — which is why it is the accent colour and
+   not one of the four above. A BLE accessory is neither "ok" (green means a
+   live MQTT session, which it can never have) nor "off". */
+.badge.ble {
+  background: rgba(10, 162, 230, 0.16);
+  color: var(--accent);
+}
+main {
+  padding: 16px;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+.hidden {
+  display: none !important;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+/* A warning card. The default `.card` is the same neutral grey as every other
+   panel on the page, so a warning printed into one reads as a caption — two
+   people missed the "this page is not HTTPS" note entirely and reported the
+   feature as broken.
+   Tints are rgba over the existing --warn/--bad, so one rule covers the light
+   and dark themes without a second palette. */
+.card.notice {
+  border-color: rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid var(--warn);
+}
+/* Advisory vs blocking. `.notice` alone is "read this"; `.stop` is "the form
+   below is switched off because of this", and the two must not look alike —
+   the mDNS hint appears on a perfectly working page. */
+.card.notice.stop {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.1);
+  border-left-color: var(--bad);
+}
+.card.notice a {
+  color: inherit;
+  text-decoration: underline;
+}
+/* "You are looking at an old copy of this page." Prepended to <body> rather
+   than rendered into a tab, because the tab someone is on when this matters is
+   whichever one is behaving oddly — and the whole point is that the panel is
+   not the one that was deployed. Same warning tint as `.card.notice`, but
+   full-bleed at the top: this is about the page itself, not about anything in
+   it. */
+.stale-banner {
+  border-bottom: 1px solid rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--fg);
+  padding: 10px 16px;
+  font-size: 14px;
+}
+.stale-banner .mini {
+  margin-left: 8px;
+}
+/* The form the notice above is talking about. Deliberately NOT
+   `pointer-events: none`: the fields carry the `?` help buttons that explain
+   what each one is for, and those stay useful — arguably more so — while the
+   form cannot be submitted. The fields themselves are given a real `disabled`
+   attribute in the JS, so keyboard and screen-reader users get the same
+   answer as the dimming gives everyone else. */
+.card.blocked h3,
+.card.blocked .sub,
+.card.blocked label {
+  opacity: 0.6;
+}
+h3 {
+  margin: 0 0 10px;
+}
+.sub {
+  color: var(--mut);
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+th {
+  color: var(--mut);
+  font-weight: 600;
+}
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+.dot.on {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+.dot.off {
+  background: var(--mut);
+}
+code,
+pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+code {
+  background: rgba(127, 127, 127, 0.12);
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+pre {
+  background: rgba(127, 127, 127, 0.09);
+  padding: 10px;
+  border-radius: 9px;
+  overflow: auto;
+  max-height: 360px;
+  font-size: 12px;
+  margin: 6px 0;
+}
+.mut {
+  color: var(--mut);
+}
+.row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.col {
+  flex: 1;
+  min-width: 280px;
+}
+
+/* toggle */
+.sw {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex: none;
+}
+.sw input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.sw .sl {
+  position: absolute;
+  inset: 0;
+  background: var(--line);
+  border-radius: 999px;
+  transition: 0.15s;
+  cursor: pointer;
+}
+.sw .sl:before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.15s;
+}
+.sw input:checked + .sl {
+  background: var(--ok);
+}
+.sw input:checked + .sl:before {
+  transform: translateX(18px);
+}
+.stbl td:first-child {
+  color: var(--mut);
+}
+.stbl td:nth-child(2) {
+  font-weight: 600;
+  text-align: right;
+}
+.stbl td:nth-child(3) {
+  color: var(--mut);
+  font-size: 11px;
+  text-align: right;
+}
+/* Deliberately NOT element-qualified. These were `button.act` etc., and the
+   Device-logs download is an <a> (its href is built at runtime) — so it wore
+   the same classes as the Live-traffic download button and rendered as a bare
+   blue link next to it. Two identical labels, two different-looking controls.
+   `display:inline-block` is what makes the <a> take the padding. */
+/* ==== CONTROLS ==== */
+.act,
+.ghost,
+.mini {
+  display: inline-block;
+  text-decoration: none;
+}
+.act:hover,
+.ghost:hover {
+  text-decoration: none;
+}
+
+/* Outlined, not filled. A device panel is a page of readings and toggles with
+   no filled backgrounds anywhere else, so a row of eleven saturated pills was
+   the loudest thing on screen by a wide margin — and "Scoop" does not deserve
+   more visual weight than the litter level it sits above. Destructive actions
+   keep red, as an outline rather than a slab: enough to catch the eye without
+   competing with the rest of the page. */
+.act {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 3px 3px 3px 0;
+}
+.act:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.act.danger {
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 45%, transparent);
+}
+.act.danger:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 8%, transparent);
+}
+/* The example chips under the raw-command box: same outline, smaller. */
+.act.mini-ex {
+  font-size: 12px;
+  padding: 4px 9px;
+}
+label.showall {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+/* The global `input` rule is `width:100%`, which turned this checkbox into a
+   full-width block and wrapped its label one word per line. */
+label.showall input {
+  width: auto;
+  margin: 0;
+}
+.ghost {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font-weight: 500;
+}
+.ghost:hover {
+  background: rgba(127, 127, 127, 0.08);
+}
+.mini {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+input,
+textarea,
+select {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 9px;
+  font: inherit;
+  width: 100%;
+}
+/* A control that cannot be used has to LOOK unusable. Without this the
+   provisioning form sat there fully lit while every field was disabled, so the
+   only clue was that typing did nothing. */
+input:disabled,
+textarea:disabled,
+select:disabled,
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+a {
+  color: var(--accent);
+  cursor: pointer;
+}
+a:hover {
+  text-decoration: underline;
+}
+/* A link that destroys something. Coloured rather than styled as a button so
+   it stays visually secondary to the download beside it — deleting a capture
+   is not the thing you came to the row to do. */
+.danger-link {
+  color: var(--bad);
+}
+.cap-acts {
+  display: flex;
+  gap: 12px;
+  white-space: nowrap;
+}
+/* ==== DEVICE PANELS ==== */
+/* device panels — one collapsible <details> per device, all expanded by
+   default. Replaces a grid of summary cards plus a single shared detail pane:
+   with one pane the open state of everything inside it was lost on every
+   refresh, and there was no way to compare two devices. */
+.devpanel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.devpanel > summary {
+  cursor: pointer;
+  padding: 13px 15px;
+  list-style: none;
+}
+.devpanel > summary::-webkit-details-marker {
+  display: none;
+}
+.devpanel > summary::before {
+  content: '▸';
+  color: var(--mut);
+  font-size: 11px;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+.devpanel[open] > summary::before {
+  transform: rotate(90deg);
+}
+.devpanel > summary:hover {
+  background: var(--card2);
+}
+.dp-name {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 40%;
+}
+/* The at-a-glance line the collapsed header still has to carry. Hidden on a
+   narrow screen, where the badges alone already fill the row. */
+.dp-meta {
+  font-size: 11px;
+  white-space: nowrap;
+}
+@media (max-width: 620px) {
+  .dp-meta {
+    display: none;
+  }
+}
+.devbody {
+  padding: 0 13px 4px;
+  border-top: 1px solid var(--line);
+}
+/* The panel is the card now, so the cards inside it are plain sections. */
+.devbody > .card {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 12px 2px;
+  margin: 0;
+}
+.devbody > .card:last-child {
+  border-bottom: 0;
+}
+.chip {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--mut);
+}
+/* ==== SCHEDULES ==== */
+/* Columns, not a stack. Every schedule box is a few short rows, so stacked full
+   width they were content in the top-left corner of a very wide empty
+   rectangle, five times over. `auto-fill` gives three columns on a desktop, two
+   on a laptop and one on a phone without a breakpoint anywhere.
+
+   `align-items: start` because the boxes are different heights — the cleaning
+   one carries two or three sections — and a stretched short box is the same
+   empty rectangle again. */
+.sched-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.sched {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--card2);
+}
+.sched-raw .sched {
+  margin-top: 10px;
+}
+/* Unsaved. The panel repaints every ~10s, so "there are changes here" has to be
+   visible from the card and not only from the button that appeared. */
+.sched.dirty {
+  border-color: var(--accent);
+}
+.sched-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.sched-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sched-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sched-sub {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--mut);
+  margin-bottom: 4px;
+}
+.sched-json {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.sched-raw summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--mut);
+}
+/* A button that is not a button: add/remove/discard are secondary to reading
+   the schedule, and this card has a lot of them. Filled pills made a list of
+   quiet hours look like a control panel. */
+.link {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent);
+}
+.link:hover {
+  text-decoration: underline;
+}
+.link.danger {
+  color: var(--mut);
+}
+.link.danger:hover {
+  color: var(--bad);
+}
+/* Every row in this card is the same two-column grid: what the schedule SAYS,
+   then what you can do to it. One grid rather than per-row flexbox because the
+   rows are not alike — "All day", a pair of clocks, a clock plus seven weekday
+   chips, an Enabled switch — and laid out independently they landed at four
+   different offsets with the actions floating wherever the content happened to
+   end. The shared track is what makes a column of ✕ read as a column.
+
+   The width is capped: stretched to a wide window the actions end up a
+   thousand pixels from the row they belong to. */
+.sched-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0;
+}
+.sched-vals {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.sched-acts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+.sched-arrow {
+  color: var(--mut);
+}
+.sched-allday {
+  font-size: 13px;
+}
+.sched-note {
+  font-size: 12px;
+}
+/* Inputs are `width: 100%` globally, which is right for a form field and wrong
+   for a clock sitting in a row of them. Fixed rather than `auto` so the clocks
+   line up down the card whatever the browser thinks a time input should be. */
+.sched-row input[type='time'] {
+  width: 108px;
+  padding: 5px 8px;
+}
+.sched-portion {
+  width: 62px;
+  padding: 5px 8px;
+}
+.sched-card input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}
+.sw-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--mut);
+  cursor: pointer;
+}
+.sched-entry {
+  border-left: 2px solid var(--line);
+  padding-left: 10px;
+  margin: 10px 0;
+}
+/* Sunday first — that is PetKit's numbering, not a display choice. */
+.sched-days {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  margin: 4px 0;
+}
+.sched-days label {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 3px 7px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--mut);
+}
+/* Tinted, not filled. Seven solid pills on every row is a wall of colour, and
+   this file already learned that lesson once with the action buttons: a device
+   panel has no filled backgrounds anywhere else, so saturated ones become the
+   loudest thing on the page. The tint plus the accent text is enough to read
+   "on" at a glance. */
+.sched-days label.on {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+/* Visually hidden, NOT `display: none`: that drops the checkbox out of the
+   accessibility tree and off the tab order, which left the weekday toggles
+   unreachable by keyboard while looking fine. */
+.sched-days input[type='checkbox'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.sched-days label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* device panel body */
+.dh {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dh .chip {
+  font-size: 12px;
+}
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px 16px;
+  margin-top: 14px;
+}
+.meta .m-k {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--mut);
+}
+.meta .m-v {
+  font-size: 13px;
+  word-break: break-word;
+}
+.ctrls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 11px;
+}
+.ctrl > span {
+  font-size: 13px;
+}
+.ctrl .cn {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: auto;
+}
+/* A setting that only applies while proxy mode is on. Shown rather than
+   hidden — its state is worth reading even when inactive. */
+.ctrl.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.ctrl input[type='number'] {
+  width: 76px;
+  text-align: right;
+}
+.ctrl select {
+  width: auto;
+  min-width: 110px;
+}
+/* ==== AI / PETS ==== */
+.newpet {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+.newpet select {
+  width: auto;
+  min-width: 150px;
+}
+@media (max-width: 560px) {
+  .newpet {
+    grid-template-columns: 1fr;
+  }
+  .newpet select {
+    width: 100%;
+  }
+}
+.petcard {
+  background: var(--card2);
+}
+.pet-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pet-name {
+  font-size: 16px;
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+}
+/* The only hint that the name is editable. A button next to Delete would read
+   as equally weighty as deleting the pet, which it is not. */
+.pet-name:hover {
+  border-bottom-color: var(--mut);
+}
+/* Sized to sit exactly where the name was, so the card does not jump when it
+   turns into a field. */
+.pet-name-edit {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  min-width: 140px;
+}
+.pet-devs {
+  flex: 1;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pet-foot {
+  font-size: 12px;
+  margin-top: 10px;
+}
+/* Mugshots. A grid rather than a flex row so the add-tile lines up with
+   the photos instead of trailing after them at a different height. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.tile {
+  position: relative;
+  aspect-ratio: 1/1;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Remove is a corner affordance on the photo, not a button under every
+   thumbnail — six loud buttons in a row read as the point of the card. It is
+   revealed on hover but stays reachable by keyboard via :focus-within. */
+.tile-x {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tile:hover .tile-x,
+.tile:focus-within .tile-x {
+  opacity: 1;
+}
+.tile-x:hover {
+  background: var(--bad);
+}
+.tile-add {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line);
+  background: none;
+  color: var(--mut);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.tile-add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tile-add .plus {
+  font-size: 22px;
+  line-height: 1;
+}
+.unbound {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.unbound select {
+  width: auto;
+  min-width: 120px;
+}
+.facerules {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+.facerules li {
+  padding: 2px 0 2px 20px;
+  position: relative;
+  color: var(--mut);
+}
+.facerules li:before {
+  position: absolute;
+  left: 2px;
+  font-weight: 700;
+}
+.facerules li.ok:before {
+  content: '\2713';
+  color: var(--ok);
+}
+.facerules li.bad:before {
+  content: '\2715';
+  color: var(--bad);
+}
+/* ---- the face cropper ---- */
+.crop-box {
+  max-width: 760px;
+}
+.crop-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.crop-head h3 {
+  flex: 1;
+  margin: 0;
+}
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 40px 20px;
+  margin-top: 14px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+}
+.dropzone:hover,
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(10, 162, 230, 0.06);
+}
+.dropzone .dz-big {
+  font-size: 34px;
+  line-height: 1;
+}
+.dropzone .mut {
+  font-size: 12px;
+}
+.crop-work {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.crop-canvas-wrap {
+  position: relative;
+  flex: none;
+  line-height: 0;
+}
+#cropCanvas {
+  width: 360px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  border-radius: 12px;
+  background: var(--card2);
+  cursor: grab;
+  touch-action: none;
+}
+#cropCanvas:active {
+  cursor: grabbing;
+}
+/* The frame is decoration over the canvas: the canvas IS the crop, so the
+   frame only has to say so. pointer-events:none keeps the drag on the canvas. */
+.crop-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+/* The cat-face guide: everything OUTSIDE the head is dimmed, so the cutout is
+   the crop you are aiming for. Its whole job is to make "much closer than you
+   think" obvious before the upload rather than after — the device is fed a
+   224x224 face chip, and a photo of a whole cat reads as wrong against this
+   immediately. One flat dark fill, no strokes: a thin outline disappeared over
+   a busy photo and read as decoration rather than as a target. */
+.crop-guide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: 12px;
+  /* Matches #cropCanvas, or the dimming spills past the rounded corners. */
+  overflow: hidden;
+  fill: rgba(0, 0, 0, 0.32);
+}
+/* The face marks. Same one dark colour as the dimming, outlines only, and a
+   screen-space stroke width so they stay hairline-thin whatever the frame is
+   scaled to. */
+.cg-marks {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.42);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* Eyes and nose are solid, like the reference — small enough that they mark
+   where a feature belongs without covering the cat's own. */
+.cg-marks .cg-solid {
+  fill: rgba(0, 0, 0, 0.42);
+  stroke: none;
+}
+.crop-side {
+  flex: 1;
+  min-width: 200px;
+}
+.crop-preview-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+#cropPreview {
+  width: 112px;
+  height: 112px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  margin-top: 4px;
+}
+.crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.crop-zoom input[type='range'] {
+  flex: 1;
+  padding: 0;
+}
+.crop-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.crop-actions .mut {
+  font-size: 12px;
+}
+/* Narrow screens stack the cropper, which pushed the primary action below the
+   fold — the one control that must always be reachable. Sitting the preview and
+   the checklist side by side buys back the height they cost stacked. */
+@media (max-width: 700px) {
+  /* Sized off the VIEWPORT, not the parent: .crop-canvas-wrap shrink-wraps its
+     canvas, so a percentage width here would be circular and resolve back to
+     the 360px attribute. The vh term is what keeps the primary action above the
+     fold on a short screen — the canvas is square, so its width is its height. */
+  #cropCanvas {
+    width: min(84vw, 38vh);
+  }
+  .crop-side {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .crop-preview-wrap {
+    flex: none;
+  }
+  .crop-side .facerules {
+    margin-top: 0;
+    flex: 1;
+  }
+  #cropPreview {
+    width: 84px;
+    height: 84px;
+  }
+}
+/* ==== LOG ==== */
+.log {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+/* The scrolling viewport around a log. Both logs use it; the Device-logs one is
+   shorter because its card sits under the live one. */
+.log.pane {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.devlog .log.pane {
+  max-height: 50vh;
+}
+/* A card's title row: controls on one line with the heading, tight to the body
+   below it. */
+.row.head {
+  margin-bottom: 8px;
+  align-items: center;
+}
+.row.head h3 {
+  margin: 0;
+}
+/* Controls that must not take a whole flex row of their own — a checkbox and
+   its label, a picker, a grep box. `.col`'s 280px minimum is for form fields. */
+.row.head label,
+.row.head select {
+  width: auto;
+}
+.row.head label input[type='checkbox'] {
+  width: auto;
+  vertical-align: middle;
+}
+.row.head input[type='text'],
+.row.head input:not([type]) {
+  width: auto;
+  flex: 1;
+  min-width: 140px;
+}
+.log .l {
+  border-bottom: 1px solid var(--line);
+}
+.log .l.exp {
+  cursor: pointer;
+}
+.log .lh {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 6px;
+}
+.log .l.exp:hover .lh {
+  background: rgba(127, 127, 127, 0.06);
+}
+.log .lsum {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Hidden until the row is hovered or opened: the log is a dense list and a
+   button on every line would compete with the summary text, which is the thing
+   being scanned. Kept in the layout (visibility, not display) so rows do not
+   shift under the cursor. Always shown on a touch screen, where there is no
+   hover to reveal it. */
+.log .logcopy {
+  visibility: hidden;
+  padding: 1px 7px;
+  font-size: 11px;
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--fg);
+}
+.log .l:hover .logcopy,
+.log .l.open .logcopy {
+  visibility: visible;
+}
+@media (hover: none) {
+  .log .logcopy {
+    visibility: visible;
+  }
+}
+.log .chev {
+  transition: transform 0.12s;
+}
+.log .l.open .chev {
+  transform: rotate(90deg);
+}
+.log .ld {
+  display: none;
+  margin: 0 6px 8px;
+  max-height: 320px;
+}
+.log .l.open .ld {
+  display: block;
+}
+body.hidehb .log .l[data-hb='1'] {
+  display: none;
+}
+.k {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 6px;
+  color: #fff;
+}
+.k.http {
+  background: #6366f1;
+}
+.k.mqtt {
+  background: #0ea5e9;
+}
+.k.connect {
+  background: #16a34a;
+}
+.k.cmd {
+  background: #f59e0b;
+}
+.k.event {
+  background: #8b5cf6;
+}
+.k.patcher {
+  background: #e11d48;
+}
+.k.ping {
+  background: #9ca3af;
+}
+/* Proxy mode: a routine substitution vs something the cloud actually tried. */
+.k.redact {
+  background: #a855f7;
+}
+.k.blocked {
+  background: #dc2626;
+}
+.empty {
+  text-align: center;
+  color: var(--mut);
+  padding: 40px 16px;
+}
+.empty .big {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+.toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--fg);
+  color: var(--bg);
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  z-index: 20;
+  max-width: 90vw;
+}
+.toast.show {
+  opacity: 1;
+}
+details.adv summary {
+  cursor: pointer;
+  color: var(--mut);
+  font-size: 13px;
+  padding: 4px 0;
+}
+/* The recognised pet on a timeline card — a sibling of .tl-kind, not a
+   different kind of object: same flat tint, same capsule, no border. Only
+   the avatar and a readable name size differ, since a pet's name is content
+   rather than a category label.
+
+   inline-BLOCK, not inline-flex: an inline-flex box takes its baseline from
+   its first flex item, which here is the avatar, so the whole pill was
+   aligned by the image's bottom edge and floated visibly above the text.
+   As an inline-block it aligns on its own last line box — the name — exactly
+   like .tl-kind does. */
+.tl-pet {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.14);
+  color: var(--fg);
+  margin-right: 7px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.tl-pet:has(img) {
+  padding-left: 2px;
+}
+.tl-pet img {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 5px;
+  vertical-align: -3px;
+}
+
+/* ==== TIMELINE ==== */
+/* timeline — a left time-gutter with the content column beside it, so
+   timestamps line up and scan down the edge (like the official app).
+   The feed is a capped, centred column (like the app's phone-width column):
+   a wider card just leaves an empty right half, which is what made it read
+   as sparse on a big screen. The anchor thumbnail is a hero that fills the
+   content width; sub-event thumbnails stay small and sit a few across. */
+/* Wide enough that a visit's summary line — kind, pet, duration, weight,
+   waste — fits on one row. At 430px it wrapped mid-phrase. */
+#timelineView {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.tl-nb {
+  white-space: nowrap;
+}
+.tl-row.anchor .tl-media .tl-thumb {
+  width: 100%;
+  max-width: 380px;
+}
+.tl-card {
+  padding: 12px 16px;
+}
+.tl-dev {
+  float: right;
+  font-size: 11px;
+  color: var(--mut);
+}
+.tl-row {
+  display: grid;
+  grid-template-columns: var(--tl-time-w, 70px) 1fr;
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 3px 0;
+}
+.tl-t {
+  font-variant-numeric: tabular-nums;
+  color: var(--mut);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tl-row.anchor {
+  padding-bottom: 2px;
+}
+.tl-row.anchor .tl-t {
+  color: var(--fg);
+  font-weight: 700;
+  font-size: 13px;
+}
+.tl-kind {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.14);
+  color: var(--mut);
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+.tl-kind.visit {
+  background: rgba(10, 162, 230, 0.16);
+  color: var(--accent);
+}
+.tl-kind.pet {
+  background: rgba(139, 92, 246, 0.16);
+  color: #8b5cf6;
+}
+.tl-kind.error {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--bad);
+}
+/* thumbnails: preserve aspect ratio — contain, never crop */
+.tl-media {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 6px 0 4px;
+}
+.tl-thumb {
+  position: relative;
+  width: 140px;
+  max-width: 42vw;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+  flex: none;
+  border: 1px solid var(--line);
+}
+.tl-thumb.small {
+  width: 104px;
+}
+.tl-thumb img,
+.tl-thumb video {
+  width: 100%;
+  display: block;
+  background: #000;
+}
+.tl-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+.tl-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.tl-badge.proc {
+  background: rgba(245, 158, 11, 0.9);
+  color: #000;
+}
+.tl-cap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+  padding: 12px 4px 3px;
+}
+/* "video processing" placeholder tile (chunks not yet stitched) */
+.tl-thumb.tl-ph {
+  background: var(--card2);
+  border-style: dashed;
+  cursor: default;
+}
+.tl-ph-in {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  color: var(--mut);
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}
+.tl-spin {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: tlspin 0.8s linear infinite;
+}
+@keyframes tlspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+details.tl-more {
+  margin: 2px 0 0 82px;
+}
+details.tl-more > summary {
+  cursor: pointer;
+  color: var(--mut);
+  font-size: 12px;
+  list-style: none;
+  padding: 2px 0;
+}
+details.tl-more > summary::-webkit-details-marker {
+  display: none;
+}
+details.tl-more > summary:before {
+  content: '▸ ';
+  font-size: 10px;
+}
+details.tl-more[open] > summary:before {
+  content: '▾ ';
+}
+details.tl-more .tl-row {
+  grid-template-columns: var(--tl-time-w, 64px) 1fr;
+}
+/* Confirmed facts decoded off the payload, sitting inline on the card. */
+/* Debug info. The feed is a 430px phone-width column, which a decode table
+   cannot live in, so debug mode widens it — gated on the toggle so the
+   normal reading view is untouched. */
+#timelineView.dbg {
+  max-width: 980px;
+}
+/* The filter chips are one control, not five buttons that happen to be
+   adjacent. `.row`'s 14px gap and flex-wrap broke the group across two lines as
+   soon as the counts grew, so they get their own tight, non-wrapping group that
+   scrolls sideways on a narrow screen instead of reflowing. */
+.tl-filterbar {
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+  padding-top: 10px;
+}
+.chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 3px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  /* Firefox/WebKit: keep the scrollbar from adding height to the pill. */
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chip-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mut);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chip-btn:hover {
+  color: var(--fg);
+  background: var(--line);
+}
+.chip-btn.on {
+  background: var(--accent);
+  color: #fff;
+}
+.chip-n {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.22);
+}
+/* A pet's mugshot inside its chip — the same face the cards below show, so the
+   filter and the results are visibly about the same animal. Sized to the cap
+   height of the label beside it, and given a negative left margin so the round
+   photo sits against the chip's own rounded edge instead of floating inside it. */
+.chip-av {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-left: -6px;
+  flex: none;
+  background: rgba(127, 127, 127, 0.22);
+}
+.chip-av-none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+.chip-btn.on .chip-n {
+  background: rgba(255, 255, 255, 0.25);
+}
+.tl-dbgtog {
+  width: auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tl-dbgtog input {
+  width: auto;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.tl-dbgbtn {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  margin-left: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mut);
+  cursor: pointer;
+  vertical-align: 1px;
+}
+.tl-dbgbtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tl-dbg:empty {
+  display: none;
+}
+.tl-dbgin {
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 4px 0 8px 82px;
+  font-size: 12px;
+}
+.tl-dbgin h4 {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mut);
+}
+.tl-dbgin h4:first-child {
+  margin-top: 0;
+}
+.tl-dbgin pre {
+  margin: 4px 0 0;
+}
+table.tl-dbgt {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  table-layout: fixed;
+}
+table.tl-dbgt td {
+  padding: 3px 6px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+table.tl-dbgt tr:first-child td {
+  border-top: 0;
+}
+table.tl-dbgt td:first-child {
+  width: 30%;
+  color: var(--mut);
+}
+.tl-note td {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+/* An honest badge beats a confident label: `unknown` means we are showing
+   the value without claiming to understand it. */
+.tl-grade {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.14);
+  color: var(--mut);
+  white-space: nowrap;
+}
+.tl-grade.confirmed {
+  background: rgba(22, 163, 74, 0.16);
+  color: var(--ok);
+}
+.tl-grade.inferred {
+  background: rgba(245, 158, 11, 0.16);
+  color: var(--warn);
+}
+.tl-grade.conflicted,
+.tl-grade.unverified {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--bad);
+}
+/* ==== MODAL ==== */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  padding: 20px;
+}
+.modal-box {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 88vh;
+  overflow: auto;
+}
+/* Narrow (phone / HA ingress): keep the logo + live pill on the top row and
+   drop the whole nav to its own full-width row below, so it never wraps into
+   an orphaned pill. */
+@media (max-width: 680px) {
+  header nav {
+    order: 3;
+    flex-basis: 100%;
+    margin-top: 8px;
+  }
+}
+/* ==== RESPONSIVE ==== */
+@media (max-width: 560px) {
+  main {
+    padding: 12px;
+  }
+}
+
+/* Device logs — the uploaded devRun.log viewer in the Log tab. */
+.devlog .dl {
+  display: flex;
+  gap: 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 1px 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.devlog .dl .ln {
+  color: var(--mut);
+  text-align: right;
+  min-width: 4.5ch;
+  flex: none;
+  user-select: none;
+}
+.devlog mark {
+  background: var(--warn);
+  color: #fff;
+  border-radius: 3px;
+}
+.k.devlog {
+  background: #0d9488;
+}
+
+/* Provisioning form: labels that own their line, and the button row under them. */
+.field-label {
+  display: block;
+  margin-top: 8px;
+}
+.form-actions {
+  margin-top: 12px;
+}
+#p-log {
+  margin-top: 10px;
+}
+/* The modal's dismiss button, out of the content flow in the top-right. */
+.modal-close {
+  float: right;
+}
+
+/* ==== HELP ==== */
+/* Inline help: a `?` beside a label, and the popover it opens. The popover is
+   parented to <body> (see `help()` in js/help.js), so it must out-stack every card
+   and the sticky nav. */
+button.help {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  margin-left: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mut);
+  cursor: help;
+  vertical-align: 1px;
+}
+button.help:hover,
+button.help[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+#helpPop {
+  position: absolute;
+  z-index: 200;
+  max-width: 320px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 18%);
+}
+
+/* A number typed but not yet sent. Without this it looks identical to the
+   device's own value, which is misleading now that an unsent edit survives a
+   repaint instead of being wiped by it. */
+.cn input.dirty {
+  border-color: var(--warn);
+}
