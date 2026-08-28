@@ -18,12 +18,19 @@ WORKDIR /opt/petkit-local
 
 # ffmpeg remuxes device camera clips; go2rtc republishes the camera stream as
 # RTSP. Both degrade gracefully on camera-less devices.
-# Built from the nklmilojevic/petkit-local fork (containers rebuild ships the
-# K3 HTTP-piggyback fix — the K3 spray relays its battery/liquid on the
-# parent's continuous state; on an unpatched ESP32 the parent HTTP-heartbeats
-# only, so the MQTT-only extractor upstream ships is a no-op). Upstream PR
-# open (alex-so-3#21); revert SOURCE/VERSION to alex-so-3 once merged. The
-# GitHub tag archive extracts to petkit-local-${VERSION#v}/.
+# Built from the nklmilojevic/petkit-local fork. Three patches upstream has
+# not merged yet:
+#   * the K3 HTTP-piggyback fix — the K3 spray relays its battery/liquid on
+#     the parent's continuous state; on an unpatched ESP32 the parent
+#     HTTP-heartbeats only, so the MQTT-only extractor upstream ships is a
+#     no-op (alex-so-3#28, half of #21);
+#   * D4H Food Low derived from hopper presence rather than the inverted raw
+#     flag (#27);
+#   * T4 Times Used derived from visit events — that box sends
+#     `litter.usedTimes` pinned at 0, so the sensor read "0 uses today" on a
+#     litter box in daily use (#32).
+# Revert SOURCE/VERSION to alex-so-3 once they land. The GitHub tag archive
+# extracts to petkit-local-${VERSION#v}/.
 RUN apk add --no-cache catatonit ffmpeg \
     && wget -qO- "https://github.com/nklmilojevic/petkit-local/archive/refs/tags/${VERSION}.tar.gz" | tar xz -C /tmp \
     && pip install -r "/tmp/petkit-local-${VERSION#v}/addon/requirements.txt" \
