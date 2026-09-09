@@ -11,7 +11,7 @@
 # =============================================================================
 # Stage 1: Angular UI Builder
 # =============================================================================
-FROM docker.io/library/node:22-slim AS ui-builder
+FROM docker.io/library/node:24-slim AS ui-builder
 ARG VERSION
 
 ADD https://github.com/nklmilojevic/hms-cpap/archive/refs/tags/${VERSION}.tar.gz /tmp/src.tar.gz
