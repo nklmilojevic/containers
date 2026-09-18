@@ -6,7 +6,7 @@ variable "APP" {
 
 variable "VERSION" {
   // renovate: datasource=docker depName=docker.io/library/alpine
-  default = "3.24.1"
+  default = "3.24.2"
 }
 
 variable "SOURCE" {
