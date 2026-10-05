@@ -5,14 +5,8 @@ variable "APP" {
 }
 
 variable "VERSION" {
-  // Pinned by hand — renovate intentionally does NOT manage this. The fork
-  // carries upstream's `v2.1.0` tag AS IS, and semver ranks 2.1.0 ABOVE the
-  // 2.1.0-nkl.N fork prereleases, so a renovate rule here "upgrades" us
-  // straight back to unpatched upstream. Bump by hand when cutting a new
-  // fork tag; drop the fork entirely once alex-so-3#21 lands.
-  // nkl.3 = v2.1.0 + K3 HTTP piggyback (#28) + D4H food-low derivation (#27)
-  //         + T4 Times Used derived from visit events (#32).
-  default = "v2.1.0-nkl.3"
+  // renovate: datasource=github-releases depName=nklmilojevic/petkit-local
+  default = "v2.1.2"
 }
 
 variable "SOURCE" {
