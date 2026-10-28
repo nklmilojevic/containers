@@ -3,7 +3,7 @@
 ARG VERSION
 FROM ghcr.io/imputnet/cobalt:${VERSION} AS upstream
 
-FROM docker.io/library/node:24-alpine AS build
+FROM docker.io/library/node:26-alpine AS build
 ARG WEB_DEFAULT_API="https://cobalt-api.nikola.wtf/"
 
 ENV PNPM_HOME="/pnpm"
