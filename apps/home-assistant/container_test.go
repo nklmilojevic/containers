@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"testing"
 
-	"github.com/home-operations/containers/testhelpers"
+	helpers "github.com/home-operations/containers/tests"
 )
 
 func Test(t *testing.T) {
-	ctx := context.Background()
-	image := testhelpers.GetTestImage("quay.io/home-operations/home-assistant:rolling")
-	testhelpers.TestHTTPEndpoint(t, ctx, image, testhelpers.HTTPTestConfig{Port: "8123"}, nil)
+	image := helpers.GetTestImage("quay.io/nklmilojevic/home-assistant:rolling")
+	helpers.RequireHTTPEndpoint(t, image, helpers.HTTPTestConfig{Port: "8123"}, nil)
 }

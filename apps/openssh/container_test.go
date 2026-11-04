@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/home-operations/containers/testhelpers"
+	helpers "github.com/home-operations/containers/tests"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -12,7 +12,7 @@ import (
 
 func Test(t *testing.T) {
 	ctx := context.Background()
-	image := testhelpers.GetTestImage("quay.io/nklmilojevic/openssh:rolling")
+	image := helpers.GetTestImage("quay.io/nklmilojevic/openssh:rolling")
 
 	// sshd must come up rootless and accept connections on its unprivileged port.
 	c, err := testcontainers.Run(ctx, image,

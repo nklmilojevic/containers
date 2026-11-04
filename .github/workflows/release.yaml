@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - apps/**
+      - "!apps/**/*_test.go"
   workflow_dispatch:
     inputs:
       app:
@@ -19,11 +20,21 @@ on:
         description: Release
         required: false
         default: false
+      no-cache:
+        type: boolean
+        description: No Cache
+        required: false
+        default: false
+
+permissions:
+  contents: read
 
 jobs:
   prepare:
     name: Prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
     outputs:
       changed-files: ${{ steps.changed-files.outputs.changed_files }}
     steps:
@@ -40,17 +51,18 @@ jobs:
     name: Get Changed Apps
     needs:
       - prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    permissions: {}
     outputs:
       apps: ${{ steps.apps.outputs.apps }}
     steps:
       - name: Get Apps
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: apps
         env:
           APPS: ${{ github.event_name == 'workflow_dispatch' && inputs.app || join(fromJSON(needs.prepare.outputs.changed-files), ' ') }}
         with:
-          script: |-
+          script: |
             const { APPS } = process.env;
             const appsToBuild = APPS.split(' ').filter(Boolean);
             core.setOutput('apps', JSON.stringify(appsToBuild));
@@ -62,14 +74,19 @@ jobs:
     name: Build ${{ matrix.app }}
     needs:
       - changed
-    uses: ./.github/workflows/app-builder.yaml
+    uses: $/.github/workflows/app-builder.yaml
     permissions:
+      artifact-metadata: write
       attestations: write
       contents: write
       id-token: write
-      packages: write
-      security-events: write
-    secrets: inherit
+      pull-requests: write
+    secrets:
+      BOT_CLIENT_ID: ${{ secrets.BOT_CLIENT_ID }}
+      BOT_APP_PRIVATE_KEY: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
     strategy:
       matrix:
         app: ${{ fromJSON(needs.changed.outputs.apps) }}
@@ -77,6 +94,7 @@ jobs:
       max-parallel: 4
     with:
       app: ${{ matrix.app }}
+      no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no-cache }}
       release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name == 'push' }}
 
   status:
@@ -84,14 +102,20 @@ jobs:
     name: Build Success
     needs:
       - build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    permissions: {}
     steps:
+      # cancelled counts as failed: !cancelled() above still runs this job when
+      # individual needs were cancelled but the run was not, and a required job
+      # that never reached a verdict must not clear the merge gate.
       - name: Any jobs failed?
-        if: ${{ contains(needs.*.result, 'failure') }}
-        run: |-
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
           exit 1
 
       - name: All jobs passed or skipped?
-        if: ${{ !(contains(needs.*.result, 'failure')) }}
-        run: |-
-          echo "All jobs passed or skipped" && echo "${{ toJSON(needs.*.result) }}"
+        if: ${{ !(contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "All jobs passed or skipped" && echo "${RESULTS}"

@@ -36,12 +36,11 @@ runs:
         }
         EOF
 
-    - name: Setup Node
-      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+    - name: Setup Mise
+      uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
       with:
-        cache: npm
-        cache-dependency-path: package.json
-        node-version: 24.x
+        experimental: true
+        install_args: --locked
 
     - name: Setup Node Dependencies
       shell: bash

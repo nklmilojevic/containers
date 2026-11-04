@@ -1,7 +1,7 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: App Tests
-description: Takes an app, app image and token then runs app tests
+description: Takes an app and image then runs tests
 
 inputs:
   app:
@@ -10,22 +10,28 @@ inputs:
   image:
     description: Image
     required: true
-  token:
-    description: GitHub Token
-    required: true
 
 runs:
   using: composite
   steps:
-    - name: Setup Go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+    - name: Setup Mise
+      uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
       with:
-        go-version-file: go.mod
+        experimental: true
+        install_args: --locked
+
+    - name: Restore Go Modules
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
 
     - name: Run Tests
       shell: bash
       env:
         APP: ${{ inputs.app }}
         TEST_IMAGE: ${{ inputs.image }}
-      run: |-
-        go test -v ./apps/${APP}/...
+      run: |
+        go test -v "./apps/${APP}/..."

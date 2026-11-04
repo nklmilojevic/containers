@@ -1,10 +1,7 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  extends: ["github>home-operations/renovate-config"],
-  // No Helm charts in this repo; disable inherited helm-docs/helm-schema post-upgrade tasks
-  postUpgradeTasks: {
-    commands: [],
-  },
+  extends: ["github>home-operations/.github:renovate-config"],
+  schedule: ["at any time"],
   customManagers: [
     {
       customType: "regex",
@@ -49,7 +46,7 @@
       transformTemplates: ['{"releases":[{"version": $[0].version}]}'],
     },
     "sonarr-develop": {
-      defaultRegistryUrlTemplate: "https://services.sonarr.tv/v1/update/develop/changes?os=linux&runtime=netcore&version=4.0",
+      defaultRegistryUrlTemplate: "https://services.sonarr.tv/v1/update/develop/changes?os=linux&runtime=netcore&version=5.0",
       format: "json",
       transformTemplates: ['{"releases":[{"version": $[0].version}]}'],
     },
@@ -74,34 +71,62 @@
       description: ["Auto-merge App Updates"],
       matchFileNames: ["**/docker-bake.hcl"],
       automerge: true,
-      automergeType: "pr",
       ignoreTests: false,
+    },
+    {
+      description: [
+        "Exempt App Updates from prHourlyLimit and create them last, since they still add to the hourly PR count",
+      ],
+      matchFileNames: ["apps/**"],
+      prHourlyLimit: 0,
+      prPriority: -1,
     },
     {
       description: ["Allowed Ubuntu Version for Base Images"],
       matchDatasources: ["docker"],
       matchPackageNames: ["/ubuntu/"],
-      allowedVersions: "/24\\.04/",
+      allowedVersions: "/26\\.04/",
     },
     {
       description: ["Allowed Alpine Version for Base Images"],
       matchDatasources: ["docker"],
       matchFileNames: ["**/Dockerfile"],
       matchPackageNames: ["/alpine/"],
-      allowedVersions: "/3\\.22/",
+      allowedVersions: "/3\\.24/",
     },
     {
       description: ["Allowed Alpine Version for Postgres Base Images"],
       matchDatasources: ["docker"],
       matchPackageNames: ["/postgres/"],
-      allowedVersions: "/alpine3\\.22/",
+      allowedVersions: "/alpine3\\.24/",
     },
     {
-      description: ["Allowed Python Version for Base Images"],
+      description: ["Allowed Python Version for Alpine Base Images"],
       matchDatasources: ["docker"],
       matchFileNames: ["**/Dockerfile"],
       matchPackageNames: ["/python/"],
-      allowedVersions: "/3\\.13-alpine3\\.22/",
+      allowedVersions: "/3\\.14-alpine3\\.24/",
+    },
+    {
+      description: ["Allowed Python Version for Debian Base Images"],
+      matchDatasources: ["docker"],
+      matchFileNames: ["**/Dockerfile"],
+      matchPackageNames: ["/python/"],
+      allowedVersions: "/3\\.14-slim/",
+    },
+    {
+      description: ["Allowed Node Version for Alpine Base Images"],
+      matchDatasources: ["docker"],
+      matchFileNames: ["**/Dockerfile"],
+      matchPackageNames: ["/node/"],
+      allowedVersions: "/26-alpine3\\.24/",
+    },
+    {
+      description: ["Allowed Node Version for Debian Base Images"],
+      matchDatasources: ["docker"],
+      matchFileNames: ["**/Dockerfile"],
+      matchPackageNames: ["/node/"],
+      allowedVersions: "/26-trixie-slim/",
     },
   ],
 }

@@ -3,7 +3,6 @@ area/apps:
   - changed-files:
       - any-glob-to-any-file:
           - apps/**/*
-          - include/**/*
 area/github:
   - changed-files:
       - any-glob-to-any-file:
@@ -11,7 +10,7 @@ area/github:
 area/mise:
   - changed-files:
       - any-glob-to-any-file:
-          - .mise.toml
+          - .mise/**/*
 area/renovate:
   - changed-files:
       - any-glob-to-any-file:

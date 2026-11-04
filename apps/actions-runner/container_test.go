@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"testing"
 
-	"github.com/home-operations/containers/testhelpers"
+	helpers "github.com/home-operations/containers/tests"
 )
 
 func Test(t *testing.T) {
-	ctx := context.Background()
-	image := testhelpers.GetTestImage("quay.io/home-operations/actions-runner:rolling")
-	testhelpers.TestFileExists(t, ctx, image, "/usr/local/bin/yq", nil)
+	image := helpers.GetTestImage("quay.io/nklmilojevic/actions-runner:rolling")
+	helpers.RequireFileExists(t, image, "/usr/local/bin/yq")
 }

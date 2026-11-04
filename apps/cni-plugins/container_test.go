@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"testing"
 
-	"github.com/home-operations/containers/testhelpers"
+	helpers "github.com/home-operations/containers/tests"
 )
 
 func Test(t *testing.T) {
-	ctx := context.Background()
-	image := testhelpers.GetTestImage("quay.io/home-operations/cni-plugins:rolling")
-	testhelpers.TestCommandSucceeds(t, ctx, image, nil, "/plugins/macvlan")
+	image := helpers.GetTestImage("quay.io/nklmilojevic/cni-plugins:rolling")
+	helpers.RequireCommandSucceeds(t, image, nil, "/plugins/macvlan")
 }

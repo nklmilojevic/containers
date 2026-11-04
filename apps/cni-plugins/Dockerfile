@@ -6,6 +6,7 @@ ARG VERSION
 
 ENV CNI_BIN_DIR=/host/opt/cni/bin
 
+# droast ignore=DF002
 USER root
 
 RUN \

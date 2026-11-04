@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"testing"
 
-	"github.com/home-operations/containers/testhelpers"
+	helpers "github.com/home-operations/containers/tests"
 )
 
 func Test(t *testing.T) {
-	ctx := context.Background()
-	image := testhelpers.GetTestImage("quay.io/home-operations/prowlarr:rolling")
-	testhelpers.TestHTTPEndpoint(t, ctx, image, testhelpers.HTTPTestConfig{Port: "9696"}, nil)
+	image := helpers.GetTestImage("quay.io/nklmilojevic/prowlarr:rolling")
+	helpers.RequireHTTPEndpoint(t, image, helpers.HTTPTestConfig{Port: "9696"}, nil)
 }
