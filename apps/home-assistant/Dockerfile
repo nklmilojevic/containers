@@ -75,22 +75,26 @@ RUN \
         build-base \
         libffi-dev \
     && \
-    HA_UV_VERSION=$(curl -fsSL "https://raw.githubusercontent.com/home-assistant/core/refs/tags/${VERSION}/requirements.txt" | awk -F'==' '/^uv==/{print $2}') \
+    curl -fsSL --retry 5 --create-dirs -o /tmp/core/requirements.txt \
+        "https://raw.githubusercontent.com/home-assistant/core/refs/tags/${VERSION}/requirements.txt" \
     && \
-    pip install uv==${HA_UV_VERSION} \
+    curl -fsSL --retry 5 --create-dirs -o /tmp/core/requirements_all.txt \
+        "https://raw.githubusercontent.com/home-assistant/core/refs/tags/${VERSION}/requirements_all.txt" \
     && \
-    curl -fsSL "https://github.com/home-assistant/core/archive/${VERSION}.tar.gz" \
-        | tar xzf - -C /tmp --strip-components=1 \
+    curl -fsSL --retry 5 --create-dirs -o /tmp/core/homeassistant/package_constraints.txt \
+        "https://raw.githubusercontent.com/home-assistant/core/refs/tags/${VERSION}/homeassistant/package_constraints.txt" \
     && \
-    HA_BASE=$(curl -fsSL "https://raw.githubusercontent.com/home-assistant/core/refs/tags/${VERSION}/.github/workflows/builder.yml" | grep "BASE_IMAGE_VERSION: " | cut -d '"' -f2) \
+    pip install "uv==$(awk -F'==' '/^uv==/{print $2}' /tmp/core/requirements.txt)" \
+    && \
+    HA_BASE=$(curl -fsSL --retry 5 "https://raw.githubusercontent.com/home-assistant/core/refs/tags/${VERSION}/.github/workflows/builder.yml" | grep "BASE_IMAGE_VERSION: " | cut -d '"' -f2) \
     && \
     uv pip install --only-binary=:all: \
         --requirement "https://raw.githubusercontent.com/home-assistant/docker/${HA_BASE}/requirements.txt" \
     && \
-    uv pip install --only-binary=:all: --requirement /tmp/requirements_all.txt \
+    uv pip install --only-binary=:all: --requirement /tmp/core/requirements_all.txt \
     && \
     uv pip install --only-binary=:all: homeassistant=="${VERSION}" \
-    && curl -fsSL -o /bin/go2rtc \
+    && curl -fsSL --retry 5 -o /bin/go2rtc \
         "https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_${TARGETARCH}" \
     && chmod +x /bin/go2rtc \
     && mkdir -p /config && chown nobody:nogroup -R /config \
