@@ -12,7 +12,7 @@ ARG TARGETARCH
 ARG VERSION
 
 # renovate: datasource=npm depName=homebridge-config-ui-x
-ARG UI_VERSION=5.29.0
+ARG UI_VERSION=5.30.0
 # renovate: datasource=npm depName=homebridge-unifi-protect
 ARG PROTECT_VERSION=8.1.0
 # renovate: datasource=github-releases depName=jellyfin/jellyfin-ffmpeg
