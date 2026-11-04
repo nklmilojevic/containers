@@ -1,16 +1,14 @@
 package main
 
 import (
-	"context"
 	"testing"
 
-	"github.com/home-operations/containers/testhelpers"
+	helpers "github.com/home-operations/containers/tests"
 )
 
 func Test(t *testing.T) {
-	ctx := context.Background()
-	image := testhelpers.GetTestImage("quay.io/home-operations/plex:rolling")
-	testhelpers.TestHTTPEndpoint(t, ctx, image, testhelpers.HTTPTestConfig{
+	image := helpers.GetTestImage("quay.io/nklmilojevic/plex:rolling")
+	helpers.RequireHTTPEndpoint(t, image, helpers.HTTPTestConfig{
 		Port: "32400",
 		Path: "/web/index.html",
 	}, nil)
