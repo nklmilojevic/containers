@@ -39,7 +39,7 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
     && curl -fsSL -o /tmp/jellyfin-ffmpeg.deb \
-        "https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/${JELLYFIN_FFMPEG_VERSION}/jellyfin-ffmpeg7_${JELLYFIN_FFMPEG_VERSION#v}-noble_${TARGETARCH}.deb" \
+        "https://github.com/jellyfin/jellyfin-ffmpeg/releases/download/${JELLYFIN_FFMPEG_VERSION}/jellyfin-ffmpeg7_${JELLYFIN_FFMPEG_VERSION#v}-$(. /etc/os-release && echo "${VERSION_CODENAME}")_${TARGETARCH}.deb" \
     && apt-get install -y --no-install-recommends /tmp/jellyfin-ffmpeg.deb \
     && npm install -g --omit=dev --foreground-scripts \
         "homebridge@${VERSION}" \
