@@ -7,7 +7,7 @@
 # jellyfin-ffmpeg (Intel QSV/VAAPI with a vendored libva/iHD driver stack,
 # fdk-aac-stripped) selectable via the plugin's videoProcessor option for
 # hardware-accelerated transcoding at /usr/lib/jellyfin-ffmpeg/ffmpeg.
-FROM docker.io/library/ubuntu:24.04
+FROM docker.io/library/ubuntu:26.04
 ARG TARGETARCH
 ARG VERSION
 
