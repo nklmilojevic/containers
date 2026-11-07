@@ -14,7 +14,7 @@ ARG VERSION
 # renovate: datasource=npm depName=homebridge-config-ui-x
 ARG UI_VERSION=5.30.0
 # renovate: datasource=npm depName=homebridge-unifi-protect
-ARG PROTECT_VERSION=8.1.0
+ARG PROTECT_VERSION=8.2.0
 # renovate: datasource=github-releases depName=jellyfin/jellyfin-ffmpeg
 ARG JELLYFIN_FFMPEG_VERSION=v7.1.4-3
 
